@@ -514,6 +514,19 @@ app.post('/sanphamtonkho/', function (req, res) {
     });
 });
 
+app.post('/sanpham/', function (req, res) {
+    var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+
+    pool.query('SELECT * FROM sanphamtonkho WHERE (DEFAULT,$1,$2,$3,$4,$5,$6)', postData, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
+
 app.post('/danhsachdonhang/', function (req, res) {
     var postData = req.body;
     res.header("Access-Control-Allow-Origin", "*");
@@ -664,7 +677,7 @@ app.get('/getsanphamtonkho/', function (req, res) {
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     console.log(req);
-    pool.query('select * from sanphamtonkho', function (error, results, fields) {
+    pool.query('select * from sanphamtonkho where id = ($1)', function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
     });
