@@ -785,7 +785,7 @@ app.put('/updatetrangthaidonhang/', function (req, res) {
          if (error) throw error;
          res.end(JSON.stringify(results.rows));
      });
- });
+ }); 
 
 
 
