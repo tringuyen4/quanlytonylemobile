@@ -553,6 +553,19 @@ app.post('/getdanhsachdonhangquanlymobiletransaction/', function (req, res) {
     });
 });
 
+app.post('/getdanhsachsanphamdabanquanlymobiletransaction/', function (req, res) {
+    var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+
+    pool.query('SELECT * FROM danhsachsanphamdaban where transactionkey = ($1)', postData, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
+
 app.get('/getdanhsachdonhangquanlymobile/', function (req, res) {
     
     res.header("Access-Control-Allow-Origin", "*");
