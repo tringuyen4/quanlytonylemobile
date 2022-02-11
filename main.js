@@ -534,7 +534,7 @@ app.post('/getdanhsachdonhangquanlymobileid/', function (req, res) {
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
 
-    pool.query('SELECT * FROM danhsachdonhang where id = ($1)', postData, function (error, results, fields) {
+    pool.query('SELECT * FROM danhsachdonhang where madonhang = ($1)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
     });
