@@ -552,7 +552,7 @@ app.post('/getdanhsachdonhangquanlymobiletransaction/', function (req, res) {
         res.end(JSON.stringify(results.rows));
     });
 });
-
+  
 app.post('/getdanhsachsanphamdabanquanlymobiletransaction/', function (req, res) {
     var postData = req.body;
     res.header("Access-Control-Allow-Origin", "*");
