@@ -514,7 +514,7 @@ app.post('/sanphamtonkho/', function (req, res) {
     });
 });
 
-app.post('/danhsachdonhang/', function (req, res) {
+app.post('/taodanhsachdonhang/', function (req, res) {
     var postData = req.body;
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
