@@ -664,7 +664,7 @@ app.post('/deletequanlythu/', function (req, res) {
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
 
-    pool.query('DELETE quanlythu where id = ($1)', postData, function (error, results, fields) {
+    pool.query('DELETE FROM quanlythu where id = ($1)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
     });
@@ -677,7 +677,7 @@ app.post('/deletequanlychi/', function (req, res) {
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
 
-    pool.query('DELETE quanlychi where id = ($1)', postData, function (error, results, fields) {
+    pool.query('DELETE FROM quanlychi where id = ($1)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
     });
