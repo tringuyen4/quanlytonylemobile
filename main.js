@@ -5,6 +5,9 @@ var mysql = require('mysql');
 var bodyParser = require('body-parser');
 var cors = require('cors');
 const { Pool } = require('pg')
+const {KAI_SERVICES} = require("./constants/kai-service.constants");
+const {ReplicateService} = require("./services/replicate.service");
+const {KAI_CONNECTION_STRING, CONNECTION_STRING, DATA_REPLICATION_KEY} = require("./constants/data.constant");
 
 //MySQL connection
 // var connection = mysql.createConnection({
@@ -14,9 +17,14 @@ const { Pool } = require('pg')
 //     database: 'network'`1a
 // });
 
+//
+// var connectionString =
+//     'postgres://ypdfdqvewxxgly:7ac1504434e43a831ed167ce89a7e5069f7b549cced29bdaab42e50fc7b5297c@ec2-3-227-15-75.compute-1.amazonaws.com:5432/ddoocbjabks5u0'
 
-var connectionString =
-    'postgres://ypdfdqvewxxgly:7ac1504434e43a831ed167ce89a7e5069f7b549cced29bdaab42e50fc7b5297c@ec2-3-227-15-75.compute-1.amazonaws.com:5432/ddoocbjabks5u0'
+
+
+var connectionString = 'postgres://postgres:12345678@localhost:5432/sellmobile_v2'
+
 
 app.use(cors());
 
@@ -32,9 +40,11 @@ app.use(cors());
 //     console.log('You are now connected...')
 // })
 
-const pool = new Pool({ connectionString,ssl: {
-    rejectUnauthorized: false
-  } })
+const pool = new Pool({ connectionString,
+  //   ssl: {
+  //   rejectUnauthorized: false
+  // }
+})
 
 module.exports = { pool }
 
@@ -993,15 +1003,149 @@ app.put('/updatetrangthaidonhang/', function (req, res) {
          if (error) throw error;
          res.end(JSON.stringify(results.rows));
      });
- });  
+ });
 
+/**
+ * =========================
+ * KAI SYSTEM
+ * =========================
+ */
 
+/**
+ * Customer Service
+ */
 
+// Get All Customers
+app.get(KAI_SERVICES.CUSTOMERS, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
 
+    pool.query(`SELECT id,name_vietnamese, name_japanese, birthday, age, address, phone, job FROM customer`, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
 
+// Insert new customer
+app.post(KAI_SERVICES.CUSTOMERS, function (req, res) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
 
+    const {name_vietnamese, name_japanese, birthday, age, address, phone, job} = req.body;
+    const customer = {
+        name_vietnamese,
+        name_japanese,
+        birthday,
+        age,
+        address,
+        phone,
+        job
+    }
+    const insertCustomerSql = `INSERT INTO customer (name_vietnamese, name_japanese, birthday, age, address, phone, job)
+                               VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`
+    pool.query(insertCustomerSql, Object.values(customer), function (error, results, fields) {
+        res.end(JSON.stringify(results.rows));
+    });
+});
 
+// Update Customer Data
+app.put(KAI_SERVICES.CUSTOMERS, function (req, res) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    const {id, name_vietnamese, name_japanese, birthday, age, address, phone, job} = req.body;
+    const customer = {
+        id,
+        name_vietnamese,
+        name_japanese,
+        birthday,
+        age,
+        address,
+        phone,
+        job
+    }
+    pool.query('Update customer SET name_vietnamese = $2, name_japanese= $3, birthday=$4, age=$5, address=$6, phone=$7, job=$8 where id = $1', Object.values(customer), function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
 
+// Delete a customer
+app.delete(`${KAI_SERVICES.CUSTOMERS}/:id`, function (req, res) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    pool.query('DELETE FROM customer WHERE id = $1', [req.params.id], function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
+
+// Search Customer
+app.post(`${KAI_SERVICES.CUSTOMERS}/search`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+
+    const postData = req.body;
+    if (!postData.query !== undefined) {
+        const search_type = postData.search_type;
+        switch (search_type) {
+            case 'BIRTHDAY':
+            default:
+                const birthday = postData.query.birthday;
+                pool.query(`SELECT id,
+                                   name_vietnamese,
+                                   name_japanese,
+                                   birthday,
+                                   age,
+                                   address,
+                                   phone,
+                                   job
+                            FROM customer
+                            WHERE birthday = '${birthday}'`, function (error, results, fields) {
+                    if (error) throw error;
+                    res.end(JSON.stringify(results.rows));
+                });
+                break;
+        }
+    }
+});
+
+/**
+ * Migration System
+ */
+app.post(KAI_SERVICES.REPLICATE, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const { secret_key } = req.body;
+    console.log('>>> secret: ', secret_key);
+    if (secret_key === DATA_REPLICATION_KEY) {
+        const replicateService = new ReplicateService(KAI_CONNECTION_STRING, CONNECTION_STRING);
+        replicateService.execute().then(r => {
+            res.end(JSON.stringify({
+                message: 'Success'
+            }))
+        });
+    } else {
+        res.end(JSON.stringify({
+            message: 'Failed'
+        }));
+    }
+});
 
 
 
