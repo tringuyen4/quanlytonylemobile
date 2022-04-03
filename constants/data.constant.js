@@ -24,10 +24,84 @@ const DATA_TABLES = {
     PURCHASING_DETAIL: 'purchasing_detail'
 }
 
+// Because Javascript not support interface so we have some constant object as model
+const CUSTOMER = {
+    id: null,
+    name_vietnamese: null,
+    name_japanese: null,
+    birthday: null,
+    age: null,
+    address: null,
+    phone: null,
+    job: null,
+    created_at: null,
+    updated_at: null
+}
+
+const PRODUCT = {
+    id: null,
+    name: null,
+    imei: null,
+    color: null,
+    status: null,
+    quantity: null,
+    price: null,
+    position: null,
+    source: null,
+    group_name: null,
+    type_name: null,
+    capacity: null,
+    version: null,
+    created_at: null,
+    updated_at: null
+}
+
+const INVOICE = {
+    id: null,
+    sale_date: null,
+    total_quantity: null,
+    total_money: null,
+    type: null,
+    status: null,
+    created_at: null,
+    updated_at: null
+}
+
+const INVOICE_DETAIL = {
+    invoice_id: null,
+    product_id: null,
+    quantity: null,
+    price: null,
+    created_at: null,
+    updated_at: null
+}
+
+const PURCHASING_DETAIL = {
+    invoice_id: null,
+    customer_id: null,
+    created_at: null,
+    updated_at: null,
+}
+
+const PURCHASING_INVOICE = {
+    invoice_id: null,
+    sale_date: null,
+    quantity: 0,
+    total_money: 0,
+    customer: null,
+    products: [],
+}
+
 module.exports = {
     DATA_TABLES,
     KAI_DATA_TABLES,
     CONNECTION_STRING,
     KAI_CONNECTION_STRING,
-    DATA_REPLICATION_KEY
+    DATA_REPLICATION_KEY,
+    CUSTOMER,
+    PRODUCT,
+    INVOICE,
+    INVOICE_DETAIL,
+    PURCHASING_DETAIL,
+    PURCHASING_INVOICE
 }

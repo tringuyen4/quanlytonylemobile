@@ -50,6 +50,8 @@ const priceWithFormat = (price = 0, separator = ',') => {
     return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, `${separator}`);
 }
 
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
 module.exports = {
     isDate,
     getAge,
@@ -58,5 +60,6 @@ module.exports = {
     getDeviceStatusText,
     priceWithFormat,
     dateFormat,
-    CURRENT_YEAR
+    CURRENT_YEAR,
+    sleep
 }

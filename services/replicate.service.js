@@ -243,7 +243,10 @@ class ReplicateService {
             ]));
         });
         return Promise.all(promises).then((r) => {
-            console.log('>>>>> Finish replicate product data.');
+            // Reset sequence value
+            return this.pool.query(`SELECT pg_catalog.setval(pg_get_serial_sequence('${DATA_TABLES.PRODUCT}', 'id'), MAX(id)) FROM ${DATA_TABLES.PRODUCT};`).then(r => {
+                console.log('>>>>> Finish replicate product data.');
+            })
         });
     }
 
@@ -265,7 +268,10 @@ class ReplicateService {
             ]));
         });
         return Promise.all(promises).then((r) => {
-            console.log('>>>>> Finish replicate customer data.');
+            // Reset sequence value
+            return this.pool.query(`SELECT pg_catalog.setval(pg_get_serial_sequence('${DATA_TABLES.CUSTOMER}', 'id'), MAX(id)) FROM ${DATA_TABLES.CUSTOMER};`).then(r => {
+                console.log('>>>>> Finish replicate customer data.');
+            })
         });
     }
 
