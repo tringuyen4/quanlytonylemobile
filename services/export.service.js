@@ -47,13 +47,13 @@ class ExportService {
      */
     async invoiceReport(reportDetail) {
         let invoiceTemplate = await this._readTemplate(EXPORT_TEMPLATES.INVOICE);
-        const {reportHeader, summary, mobiles} = reportDetail;
+        const {reportHeader, summary, products} = reportDetail;
         // Write fixed heading
         invoiceTemplate = this._writeInvoiceReportHeader(invoiceTemplate, reportHeader);
         // Write devices list
-        invoiceTemplate = this._writeInvoiceReportItems(invoiceTemplate, mobiles);
+        invoiceTemplate = this._writeInvoiceReportItems(invoiceTemplate, products);
         // Write the summary values
-        const summaryRowIndex = INVOICE_EXPORT_CELLS.MOBILE_TABLE_START_ROW + (notEmpty(mobiles) ? mobiles.length : 1);
+        const summaryRowIndex = INVOICE_EXPORT_CELLS.MOBILE_TABLE_START_ROW + (notEmpty(products) ? products.length : 1);
         invoiceTemplate = this._writeInvoiceReportSummary(invoiceTemplate, summary, summaryRowIndex);
         // Write workbook as a arrayBuffer
         return invoiceTemplate.xlsx.writeBuffer().then((buffer) => buffer).catch((e) => {

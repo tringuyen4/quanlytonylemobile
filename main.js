@@ -4,7 +4,24 @@ var app = express();
 var mysql = require('mysql');
 var bodyParser = require('body-parser');
 var cors = require('cors');
-const { Pool } = require('pg')
+const {Pool} = require('pg')
+const {KAI_SERVICES} = require("./constants/kai-service.constants");
+const {ReplicateService} = require("./services/replicate.service");
+const {
+    KAI_CONNECTION_STRING,
+    CONNECTION_STRING,
+    DATA_REPLICATION_KEY,
+    DATA_TABLES, CUSTOMER
+} = require("./constants/data.constant");
+const {HTTP_STATUSES} = require("./constants/http.constant");
+const {notEmpty, isEmpty} = require("./utils/data.utils");
+const {INVOICE_TYPE, PRODUCT_SOURCE, INVOICE_STATUS} = require("./constants/common.constant");
+const {InvoicingService} = require("./services/invoicing.service");
+const {ProductService} = require("./services/product.service");
+const {CustomerService} = require("./services/customer.service");
+const {StatisticsService} = require("./services/statistics.service");
+const {ExportService} = require("./services/export.service");
+const {ReportService} = require("./services/report.service");
 
 //MySQL connection
 // var connection = mysql.createConnection({
@@ -14,9 +31,13 @@ const { Pool } = require('pg')
 //     database: 'network'`1a
 // });
 
+//
+// var connectionString =
+//     'postgres://ypdfdqvewxxgly:7ac1504434e43a831ed167ce89a7e5069f7b549cced29bdaab42e50fc7b5297c@ec2-3-227-15-75.compute-1.amazonaws.com:5432/ddoocbjabks5u0'
 
-var connectionString =
-    'postgres://ypdfdqvewxxgly:7ac1504434e43a831ed167ce89a7e5069f7b549cced29bdaab42e50fc7b5297c@ec2-3-227-15-75.compute-1.amazonaws.com:5432/ddoocbjabks5u0'
+
+var connectionString = 'postgres://postgres:12345678@localhost:5432/sellmobile_v2'
+
 
 app.use(cors());
 
@@ -32,11 +53,24 @@ app.use(cors());
 //     console.log('You are now connected...')
 // })
 
-const pool = new Pool({ connectionString,ssl: {
-    rejectUnauthorized: false
-  } })
+const pool = new Pool({
+    connectionString,
+    //   ssl: {
+    //   rejectUnauthorized: false
+    // }
+})
 
-module.exports = { pool }
+/**
+ * Initialize Services
+ */
+const invoicingService = new InvoicingService(pool);
+const productService = new ProductService(pool);
+const customerService = new CustomerService(pool);
+const statisticsService = new StatisticsService(pool);
+const reportService = new ReportService(pool);
+const exportService = new ExportService();
+
+module.exports = {pool}
 
 //Body-parser configuration
 app.use(bodyParser.json());       // to support JSON-encoded bodies
@@ -151,7 +185,7 @@ app.post('/deleteuser/', function (req, res) {
 
 //get all user
 app.get('/getalluser/', function (req, res) {
-    
+
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
@@ -162,8 +196,6 @@ app.get('/getalluser/', function (req, res) {
         res.end(JSON.stringify(results.rows));
     });
 });
-
-
 
 
 //update user role
@@ -179,8 +211,6 @@ app.put('/updatepassword/', function (req, res) {
         res.end(JSON.stringify(results.rows));
     });
 });
-
-
 
 
 //reset password
@@ -213,12 +243,9 @@ app.put('/updaterole/', function (req, res) {
 });
 
 
-
-
-
 //get all order
 app.get('/getallorder/', function (req, res) {
-    
+
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
@@ -229,7 +256,6 @@ app.get('/getallorder/', function (req, res) {
         res.end(JSON.stringify(results.rows));
     });
 });
-
 
 
 //get all order
@@ -261,52 +287,49 @@ app.post('/getuserorder/', function (req, res) {
 });
 
 
- app.put('/updatedonhang/', function (req, res) {
-     var postData = req.body;
-     res.header("Access-Control-Allow-Origin", "*");
-     res.header("Access-Control-Allow-Credentials", true);
-     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+app.put('/updatedonhang/', function (req, res) {
+    var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
 
-     pool.query('UPDATE donhang SET tennguoigui =($1), diachinguoigui = ($2), sdtnguoigui = ($3), fbnguoigui = ($4), tennguoinhan = ($5), sdtnguoinhan = ($6), diachinguoinhan = ($7), phuongthucthanhtoan = ($8), thuho = ($9), tennhanvien = ($10), trongluong = ($11), giatien = ($12), phuthu = ($13), tongtien = ($14), dathanhtoan =($15), ngaythang = ($16), lichsudonhang = ($17), ghichu = ($18),khachhangnhapthongtin = ($19), giamgia = ($20),hinhthucvanchuyen = ($21), chitietdonhang = ($22), chuky = ($23) where madonhang=($24)', postData, function (error, results, fields) {
-         if (error) throw error;
-         res.end(JSON.stringify(results.rows));
-     });
- });
- 
- 
- 
+    pool.query('UPDATE donhang SET tennguoigui =($1), diachinguoigui = ($2), sdtnguoigui = ($3), fbnguoigui = ($4), tennguoinhan = ($5), sdtnguoinhan = ($6), diachinguoinhan = ($7), phuongthucthanhtoan = ($8), thuho = ($9), tennhanvien = ($10), trongluong = ($11), giatien = ($12), phuthu = ($13), tongtien = ($14), dathanhtoan =($15), ngaythang = ($16), lichsudonhang = ($17), ghichu = ($18),khachhangnhapthongtin = ($19), giamgia = ($20),hinhthucvanchuyen = ($21), chitietdonhang = ($22), chuky = ($23) where madonhang=($24)', postData, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
 
 
- app.put('/updatesodienthoai/', function (req, res) {
-     var postData = req.body;
-     res.header("Access-Control-Allow-Origin", "*");
-     res.header("Access-Control-Allow-Credentials", true);
-     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+app.put('/updatesodienthoai/', function (req, res) {
+    var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
 
-     pool.query('UPDATE donhang SET sdtnguoigui=($1) where madonhang=($2)', postData, function (error, results, fields) {
-         if (error) throw error;
-         res.end(JSON.stringify(results.rows));
-     });
- });
- 
- 
-  app.post('/deletedonhang/', function (req, res) {
-     var postData = req.body;
-     res.header("Access-Control-Allow-Origin", "*");
-     res.header("Access-Control-Allow-Credentials", true);
-     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+    pool.query('UPDATE donhang SET sdtnguoigui=($1) where madonhang=($2)', postData, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
 
-     pool.query('DELETE FROM donhang where madonhang=($1)', postData, function (error, results, fields) {
-         if (error) throw error;
-         res.end(JSON.stringify(results.rows));
-     });
- });
- 
 
- app.post('/loaisanpham/', function (req, res) {
+app.post('/deletedonhang/', function (req, res) {
+    var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+
+    pool.query('DELETE FROM donhang where madonhang=($1)', postData, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
+
+
+app.post('/loaisanpham/', function (req, res) {
     var postData = req.body;
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
@@ -320,19 +343,19 @@ app.post('/getuserorder/', function (req, res) {
 });
 
 app.post('/deleteloaisanpham/', function (req, res) {
-     var postData = req.body;
-     res.header("Access-Control-Allow-Origin", "*");
-     res.header("Access-Control-Allow-Credentials", true);
-     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+    var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
 
-     pool.query('DELETE FROM loaisanpham where loaisanpham=($1)', postData, function (error, results, fields) {
-         if (error) throw error;
-         res.end(JSON.stringify(results.rows));
-     });
- });
+    pool.query('DELETE FROM loaisanpham where loaisanpham=($1)', postData, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
 
- app.post('/dungluong/', function (req, res) {
+app.post('/dungluong/', function (req, res) {
     var postData = req.body;
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
@@ -346,19 +369,19 @@ app.post('/deleteloaisanpham/', function (req, res) {
 });
 
 app.post('/deletedungluong/', function (req, res) {
-     var postData = req.body;
-     res.header("Access-Control-Allow-Origin", "*");
-     res.header("Access-Control-Allow-Credentials", true);
-     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+    var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
 
-     pool.query('DELETE FROM dungluong where dungluong=($1)', postData, function (error, results, fields) {
-         if (error) throw error;
-         res.end(JSON.stringify(results.rows));
-     });
- });
+    pool.query('DELETE FROM dungluong where dungluong=($1)', postData, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
 
- app.post('/mau/', function (req, res) {
+app.post('/mau/', function (req, res) {
     var postData = req.body;
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
@@ -372,19 +395,19 @@ app.post('/deletedungluong/', function (req, res) {
 });
 
 app.post('/deletemau/', function (req, res) {
-     var postData = req.body;
-     res.header("Access-Control-Allow-Origin", "*");
-     res.header("Access-Control-Allow-Credentials", true);
-     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+    var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
 
-     pool.query('DELETE FROM mau where mau=($1)', postData, function (error, results, fields) {
-         if (error) throw error;
-         res.end(JSON.stringify(results.rows));
-     });
- });
+    pool.query('DELETE FROM mau where mau=($1)', postData, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
 
- app.post('/nhomsanpham/', function (req, res) {
+app.post('/nhomsanpham/', function (req, res) {
     var postData = req.body;
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
@@ -398,19 +421,19 @@ app.post('/deletemau/', function (req, res) {
 });
 
 app.post('/deletenhomsanpham/', function (req, res) {
-     var postData = req.body;
-     res.header("Access-Control-Allow-Origin", "*");
-     res.header("Access-Control-Allow-Credentials", true);
-     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+    var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
 
-     pool.query('DELETE FROM nhomsanpham where nhomsanpham=($1)', postData, function (error, results, fields) {
-         if (error) throw error;
-         res.end(JSON.stringify(results.rows));
-     });
- });
+    pool.query('DELETE FROM nhomsanpham where nhomsanpham=($1)', postData, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
 
- app.post('/phienban/', function (req, res) {
+app.post('/phienban/', function (req, res) {
     var postData = req.body;
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
@@ -424,19 +447,19 @@ app.post('/deletenhomsanpham/', function (req, res) {
 });
 
 app.post('/deletephienban/', function (req, res) {
-     var postData = req.body;
-     res.header("Access-Control-Allow-Origin", "*");
-     res.header("Access-Control-Allow-Credentials", true);
-     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+    var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
 
-     pool.query('DELETE FROM phienban where phienban=($1)', postData, function (error, results, fields) {
-         if (error) throw error;
-         res.end(JSON.stringify(results.rows));
-     });
- });
+    pool.query('DELETE FROM phienban where phienban=($1)', postData, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
 
- app.post('/tensanpham/', function (req, res) {
+app.post('/tensanpham/', function (req, res) {
     var postData = req.body;
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
@@ -450,43 +473,43 @@ app.post('/deletephienban/', function (req, res) {
 });
 
 app.post('/deletetensanpham/', function (req, res) {
-     var postData = req.body;
-     res.header("Access-Control-Allow-Origin", "*");
-     res.header("Access-Control-Allow-Credentials", true);
-     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+    var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
 
-     pool.query('DELETE FROM tensanpham where tensanpham=($1)', postData, function (error, results, fields) {
-         if (error) throw error;
-         res.end(JSON.stringify(results.rows));
-     });
- });
- 
- app.post('/deletequanlymay/', function (req, res) {
-     var postData = req.body;
-     res.header("Access-Control-Allow-Origin", "*");
-     res.header("Access-Control-Allow-Credentials", true);
-     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+    pool.query('DELETE FROM tensanpham where tensanpham=($1)', postData, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
 
-     pool.query('DELETE FROM quanlymay where masanpham=($1)', postData, function (error, results, fields) {
-         if (error) throw error;
-         res.end(JSON.stringify(results.rows));
-     });
- });
- 
- app.post('/deletesanphamtonkho/', function (req, res) {
-     var postData = req.body;
-     res.header("Access-Control-Allow-Origin", "*");
-     res.header("Access-Control-Allow-Credentials", true);
-     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+app.post('/deletequanlymay/', function (req, res) {
+    var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
 
-     pool.query('DELETE FROM sanphamtonkho where id=($1)', postData, function (error, results, fields) {
-         if (error) throw error;
-         res.end(JSON.stringify(results.rows));
-     });
- });
+    pool.query('DELETE FROM quanlymay where masanpham=($1)', postData, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
+
+app.post('/deletesanphamtonkho/', function (req, res) {
+    var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+
+    pool.query('DELETE FROM sanphamtonkho where id=($1)', postData, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
 
 app.post('/quanlymay/', function (req, res) {
     var postData = req.body;
@@ -552,7 +575,7 @@ app.post('/getdanhsachdonhangquanlymobiletransaction/', function (req, res) {
         res.end(JSON.stringify(results.rows));
     });
 });
-  
+
 app.post('/getdanhsachsanphamdabanquanlymobiletransaction/', function (req, res) {
     var postData = req.body;
     res.header("Access-Control-Allow-Origin", "*");
@@ -567,7 +590,7 @@ app.post('/getdanhsachsanphamdabanquanlymobiletransaction/', function (req, res)
 });
 
 app.get('/getdanhsachdonhangquanlymobile/', function (req, res) {
-    
+
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
@@ -580,7 +603,7 @@ app.get('/getdanhsachdonhangquanlymobile/', function (req, res) {
 });
 
 app.get('/getdanhsachsanphamdabanquanlymobile/', function (req, res) {
-    
+
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
@@ -619,7 +642,7 @@ app.post('/quanlythu/', function (req, res) {
 });
 
 app.get('/getquanlythu/', function (req, res) {
-    
+
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
@@ -697,7 +720,7 @@ app.post('/quanlychi/', function (req, res) {
 });
 
 app.get('/getquanlychi/', function (req, res) {
-    
+
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
@@ -775,7 +798,7 @@ app.post('/danhsachdonhangtemp/', function (req, res) {
 });
 
 app.get('/getdungluong/', function (req, res) {
-    
+
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
@@ -788,7 +811,7 @@ app.get('/getdungluong/', function (req, res) {
 });
 
 app.get('/getloaisanpham/', function (req, res) {
-    
+
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
@@ -801,7 +824,7 @@ app.get('/getloaisanpham/', function (req, res) {
 });
 
 app.get('/getmau/', function (req, res) {
-    
+
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
@@ -814,7 +837,7 @@ app.get('/getmau/', function (req, res) {
 });
 
 app.get('/getnhomsanpham/', function (req, res) {
-    
+
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
@@ -827,7 +850,7 @@ app.get('/getnhomsanpham/', function (req, res) {
 });
 
 app.get('/getphienban/', function (req, res) {
-    
+
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
@@ -840,7 +863,7 @@ app.get('/getphienban/', function (req, res) {
 });
 
 app.get('/gettensanpham/', function (req, res) {
-    
+
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
@@ -853,7 +876,7 @@ app.get('/gettensanpham/', function (req, res) {
 });
 
 app.get('/getquanlymay/', function (req, res) {
-    
+
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
@@ -866,7 +889,7 @@ app.get('/getquanlymay/', function (req, res) {
 });
 
 app.get('/getdanhsachdonhang/', function (req, res) {
-    
+
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
@@ -879,7 +902,7 @@ app.get('/getdanhsachdonhang/', function (req, res) {
 });
 
 app.get('/getdanhsachdonhangtemp/', function (req, res) {
-    
+
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
@@ -892,7 +915,7 @@ app.get('/getdanhsachdonhangtemp/', function (req, res) {
 });
 
 app.get('/getsanphamtonkho/', function (req, res) {
-    
+
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
@@ -931,77 +954,612 @@ app.post('/getdanhsachdonhangtheonguoimuareal/', function (req, res) {
 });
 
 app.put('/updatetrangthaidonhang/', function (req, res) {
-     var postData = req.body;
-     res.header("Access-Control-Allow-Origin", "*");
-     res.header("Access-Control-Allow-Credentials", true);
-     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+    var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
 
-     pool.query('UPDATE danhsachdonhang SET trangthaidonhang = ($1) where madonhang = ($2)', postData, function (error, results, fields) {
-         if (error) throw error;
-         res.end(JSON.stringify(results.rows));
-     });
- });
- 
- app.post('/deletedanhsachdonhang/', function (req, res) {
-     var postData = req.body;
-     res.header("Access-Control-Allow-Origin", "*");
-     res.header("Access-Control-Allow-Credentials", true);
-     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+    pool.query('UPDATE danhsachdonhang SET trangthaidonhang = ($1) where madonhang = ($2)', postData, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
 
-     pool.query('DELETE FROM danhsachdonhangtemp where madonhang = ($1)', postData, function (error, results, fields) {
-         if (error) throw error;
-         res.end(JSON.stringify(results.rows));
-     });
- });
+app.post('/deletedanhsachdonhang/', function (req, res) {
+    var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
 
- app.post('/deletedanhsachdonhangreal/', function (req, res) {
-     var postData = req.body;
-     res.header("Access-Control-Allow-Origin", "*");
-     res.header("Access-Control-Allow-Credentials", true);
-     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+    pool.query('DELETE FROM danhsachdonhangtemp where madonhang = ($1)', postData, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
 
-     pool.query('DELETE FROM danhsachdonhang where madonhang = ($1)', postData, function (error, results, fields) {
-         if (error) throw error;
-         res.end(JSON.stringify(results.rows));
-     });
- });
- 
-  app.post('/deletedanhsachdonhangsanphamreal/', function (req, res) {
-     var postData = req.body;
-     res.header("Access-Control-Allow-Origin", "*");
-     res.header("Access-Control-Allow-Credentials", true);
-     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+app.post('/deletedanhsachdonhangreal/', function (req, res) {
+    var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
 
-     pool.query('DELETE FROM danhsachdonhang where madonhang = ($1) and masanpham = ($2)', postData, function (error, results, fields) {
-         if (error) throw error;
-         res.end(JSON.stringify(results.rows));
-     });
- });
- 
-  app.put('/updatequanlymaynguoimua/', function (req, res) {
-     var postData = req.body;
-     res.header("Access-Control-Allow-Origin", "*");
-     res.header("Access-Control-Allow-Credentials", true);
-     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+    pool.query('DELETE FROM danhsachdonhang where madonhang = ($1)', postData, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
 
-     pool.query('UPDATE quanlymay SET trangthai=($1), madonhang=($2), ngayban=($3) where masanpham=($4)', postData, function (error, results, fields) {
-         if (error) throw error;
-         res.end(JSON.stringify(results.rows));
-     });
- });  
+app.post('/deletedanhsachdonhangsanphamreal/', function (req, res) {
+    var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+
+    pool.query('DELETE FROM danhsachdonhang where madonhang = ($1) and masanpham = ($2)', postData, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
+
+app.put('/updatequanlymaynguoimua/', function (req, res) {
+    var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+
+    pool.query('UPDATE quanlymay SET trangthai=($1), madonhang=($2), ngayban=($3) where masanpham=($4)', postData, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
+
+/**
+ * =========================
+ * KAI SYSTEM
+ * =========================
+ */
+
+/**
+ * Customer Service
+ */
+
+// Get All Customers
+app.get(KAI_SERVICES.CUSTOMERS, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    customerService.getAllCustomers()
+        .then((customers) => {
+            return res.status(HTTP_STATUSES.OK).json(customers);
+        })
+        .catch((e) => {
+            console.log('>>>> ERROR: Get All Customers error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get customer'
+            });
+        });
+
+});
+
+// Insert new customer
+app.post(KAI_SERVICES.CUSTOMERS, function (req, res) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {name_vietnamese, name_japanese, birthday, age, address, phone, job} = req.body;
+    customerService.addCustomer({
+        name_vietnamese,
+        name_japanese,
+        birthday,
+        age,
+        address,
+        phone,
+        job
+    }).then((customer) => {
+        return res.status(HTTP_STATUSES.CREATED).json(customer);
+    }).catch(e => {
+        console.log('>>>> ERROR: Create customer error: ', e);
+        return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+            error: `Can not create customer with name = ${name_vietnamese}`
+        })
+    });
+});
+
+// Update Customer Data
+app.put(KAI_SERVICES.CUSTOMERS, function (req, res) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id, name_vietnamese, name_japanese, birthday, age, address, phone, job} = req.body;
+
+    customerService.updateCustomer(id, {
+        name_vietnamese,
+        name_japanese,
+        birthday,
+        age,
+        address,
+        phone,
+        job
+    }).then((customer) => {
+        return res.status(HTTP_STATUSES.OK).json(customer);
+    }).catch(e => {
+        console.log('>>>> ERROR: Update customer error: ', e);
+        return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+            error: `Can not update customer with id = ${id}`
+        })
+    });
+});
+
+// Delete a customer
+app.delete(`${KAI_SERVICES.CUSTOMERS}/:id`, function (req, res) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    customerService.deleteCustomer(req.params.id)
+        .then(r => {
+            return res.status(HTTP_STATUSES.NO_CONTENT).json(null);
+        })
+        .catch(e => {
+            console.log(`>>>> ERROR: Can not delete customer with id = ${req.params.id} --> error: `, e)
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not delete customer with id = ${req.params.id}`
+            });
+        });
+});
+
+// Search Customer
+app.post(`${KAI_SERVICES.CUSTOMERS}/search`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {search_type, query} = req.body;
+
+    customerService.searchCustomer(search_type, query)
+        .then((customers) => {
+            return res.status(HTTP_STATUSES.OK).json(customers);
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not search customer: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not search customer`
+            });
+        });
+});
+
+/**
+ * Products
+ */
+
+// Get all products
+app.get(KAI_SERVICES.PRODUCTS, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    productService.getAllProducts(null)
+        .then(products => {
+            return res.status(HTTP_STATUSES.OK).json(products)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not search product. --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not search product`
+            });
+        });
+});
+
+// Get All Product for KAI store
+app.get(`${KAI_SERVICES.PRODUCTS}/kai`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    productService.getAllProducts(PRODUCT_SOURCE.KAI)
+        .then(products => {
+            return res.status(HTTP_STATUSES.OK).json(products)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not search product for KAI store. --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not search product for KAI store`
+            });
+        });
+
+});
+
+// Get all product in shop VN
+app.get(`${KAI_SERVICES.PRODUCTS}/shop-vn`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    productService.getAllProducts(PRODUCT_SOURCE.SHOP_VN)
+        .then(products => {
+            return res.status(HTTP_STATUSES.OK).json(products)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not search product for Shop VN. --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not search product for Shop VN`
+            });
+        });
+
+});
+
+// Get all product for shop JP
+app.get(`${KAI_SERVICES.PRODUCTS}/shop-jp`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    productService.getAllProducts(PRODUCT_SOURCE.SHOP_JP)
+        .then(products => {
+            return res.status(HTTP_STATUSES.OK).json(products)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not search product for Shop JP. --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not search product for Shop JP`
+            });
+        });
+
+});
+
+// Get all product for Warehouse
+app.get(`${KAI_SERVICES.PRODUCTS}/warehouse`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    productService.getAllProducts(PRODUCT_SOURCE.WAREHOUSE)
+        .then(products => {
+            return res.status(HTTP_STATUSES.OK).json(products)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not search product for Warehouse. --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not search product for Warehouse`
+            });
+        });
+});
+
+/**
+ * For Sale Invoices
+ */
+
+// Create new for sale invoice
+app.post(`${KAI_SERVICES.FOR_SALE_INVOICES}`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+    const {products, quantity, total_money, sale_date} = req.body;
+
+    invoicingService.forSaleInvoice({
+        quantity,
+        total_money,
+        sale_date,
+        products
+    }).then((invoiceDetail) => {
+        return res.status(HTTP_STATUSES.OK).json(invoiceDetail);
+    }).catch(e => {
+        console.log('>>> ERROR: Can not create for sale invoice. ---> error: ', e);
+        return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+            error: 'Can not create for sale invoice.'
+        })
+    })
+
+});
+
+// Get pending for sale invoice
+app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/pending`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getForSaleInvoiceByStatus(INVOICE_STATUS.PROCESSING)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+
+});
+
+// Get pending for sale invoice
+app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/completed`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getForSaleInvoiceByStatus(INVOICE_STATUS.COMPLETED)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+
+});
+
+// Cancel a for sale invoice
+app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/cancel/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+
+    invoicingService.cancelForSaleInvoice(id)
+        .then(isSuccess => {
+            return res.status(HTTP_STATUSES.OK).json({success: isSuccess});
+        })
+        .catch(e => {
+            console.log(`>>> ERROR: Can not cancel the invoice with id = ${id}. ---> error: `, e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not cancel for sale invoice with id = ${id}`
+            })
+        })
+
+});
+
+// Approve a for sale invoice
+app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/approve/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+
+    invoicingService.approveForSaleInvoice(id)
+        .then(isSuccess => {
+            return res.status(HTTP_STATUSES.OK).json({success: isSuccess});
+        })
+        .catch(e => {
+            console.log(`>>> ERROR: Can not cancel the invoice with id = ${id}. ---> error: `, e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not cancel for sale invoice with id = ${id}`
+            })
+        })
+
+});
+
+// Get for sale invoice detail
+app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/detail/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+
+    invoicingService.getForSaleInvoiceDetail(id)
+        .then((invoiceDetail) => {
+            return res.status(HTTP_STATUSES.OK).json(invoiceDetail);
+        })
+        .catch(e => {
+            console.log(`>>> ERROR: Can not detail of the for sale invoice with id = ${id}. ---> error: `, e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not detail of the for sale invoice with id = ${id}`
+            })
+        })
+
+});
+
+/**
+ * Purchasing Invoices
+ */
+
+// Get all purchasing invoices
+app.get(KAI_SERVICES.PURCHASING_INVOICES, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getAllPurchasingInvoices()
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not query purchasing invoices data: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query purchasing invoices data'
+            })
+        });
+});
+
+// Get Purchasing Invoices detail
+app.get(`${KAI_SERVICES.PURCHASING_INVOICES}/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+    if (notEmpty(id)) {
+        invoicingService.getPurchasingInvoiceDetail(id)
+            .then((invoiceDetail) => {
+                if (notEmpty(invoiceDetail)) {
+                    return res.status(HTTP_STATUSES.OK).json(invoiceDetail)
+                } else {
+                    return res.status(HTTP_STATUSES.NO_CONTENT).json(null)
+                }
+            })
+            .catch(e => {
+                console.log('>>>> ERROR: Can not get invoice detail -> error: ', e);
+                return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                    error: `Can not get items for invoice with id = ${id}`
+                })
+            })
+    } else {
+        return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+            error: `Can not get items for invoice with id = ${id}`
+        })
+    }
+
+});
+
+// Create new or Update Purchasing invoice
+app.post(`${KAI_SERVICES.PURCHASING_INVOICES}`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {invoice_id, customer, products, quantity, total_money, sale_date} = req.body;
+    invoicingService.purchasingInvoice({
+        invoice_id,
+        customer,
+        products,
+        quantity,
+        total_money,
+        sale_date
+    })
+        .then((purchasingInvoice) => {
+            return res.status(HTTP_STATUSES.OK).json(purchasingInvoice);
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not create/update invoice: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not create/update invoice'
+            })
+        })
+});
+
+// Get Purchasing Invoices detail
+app.get(`${KAI_SERVICES.PURCHASING_INVOICES}/report/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+    if (notEmpty(id)) {
+        reportService.kaiPurchasingInvoiceReport(id)
+            .then(reportData => {
+                exportService.invoiceReport(reportData)
+                    .then((bufferResponse) => {
+                        console.log('>>> Generate Invoice Report Finished! Customer Name: ', reportData.reportHeader.name_vietnamese);
+                        res.end(bufferResponse);
+                    })
+                    .catch(e => {
+                        console.log('>>>> Can not export purchasing invoice for Customer with name: ', reportData.reportHeader.name_vietnamese);
+                        res.end(null);
+                    });
+            })
+            .catch(e => {
+                console.log('>>>> Can not export purchasing invoice for Customer with invoice id: ', id);
+                res.end(null);
+            })
+    } else {
+        return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+            error: `Can not get items for invoice with id = ${id}`
+        })
+    }
+
+});
+
+/**
+ * Statistics
+ */
+app.post(`${KAI_SERVICES.STATISTICS}`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {type, from_date, to_date} = req.body;
+    statisticsService.getKaiStatistics(type, from_date, to_date)
+        .then((statistics) => {
+            return res.status(HTTP_STATUSES.OK).json(statistics)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get KAI statistics. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get KAI statistics.'
+            })
+        })
 
 
+});
 
+/**
+ * Migration System
+ */
+app.post(KAI_SERVICES.REPLICATE, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
 
-
-
-
-
+    const {secret_key} = req.body;
+    if (secret_key === DATA_REPLICATION_KEY) {
+        const replicateService = new ReplicateService(KAI_CONNECTION_STRING, CONNECTION_STRING);
+        replicateService.execute().then(r => {
+            res.end(JSON.stringify({
+                message: 'Success'
+            }))
+        });
+    } else {
+        res.end(JSON.stringify({
+            message: 'Failed'
+        }));
+    }
+});
 
 
 
