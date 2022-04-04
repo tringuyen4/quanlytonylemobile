@@ -41,6 +41,18 @@ const INVOICE_STATUS = {
     TERMINATED: 'TERMINATED'
 }
 
+const PRODUCT_SOURCE = {
+    KAI: 'KAI',
+    SHOP_VN: 'SHOP_VN',
+    SHOP_JP: 'SHOP_JP',
+    WAREHOUSE: 'WAREHOUSE'
+}
+
+const REPORT_TYPE = {
+    MONTH: 'MONTH',
+    DATE_RANGE: 'DATE_RANGE'
+}
+
 module.exports = {
     AGE_PREFIX,
     JOB_TYPE,
@@ -49,5 +61,7 @@ module.exports = {
     MOBILE_STATUSES,
     JAPANESE,
     INVOICE_TYPE,
-    INVOICE_STATUS
+    INVOICE_STATUS,
+    PRODUCT_SOURCE,
+    REPORT_TYPE
 }

@@ -8,6 +8,8 @@ CREATE TABLE product
     status     VARCHAR   NOT NULL,
     quantity   INT       NOT NULL DEFAULT 1,
     price      BIGINT    NOT NULL DEFAULT 0,
+    position   VARCHAR   NULL     DEFAULT 'KAI',
+    source     VARCHAR   NULL     DEFAULT 'KAI',
     group_name VARCHAR   NULL,
     type_name  VARCHAR   NULL,
     capacity   VARCHAR   NULL,
@@ -73,8 +75,15 @@ CREATE TABLE purchasing_detail
             REFERENCES invoice (id) ON DELETE CASCADE,
     CONSTRAINT fk_purchasing_customer
         FOREIGN KEY (customer_id)
-            REFERENCES customer(id) ON DELETE CASCADE
+            REFERENCES customer (id) ON DELETE CASCADE
 );
+
+
+-- Add missing column for product table: position, source
+ALTER TABLE product
+    ADD COLUMN "position" VARCHAR DEFAULT 'KAI';
+ALTER TABLE product
+    ADD COLUMN "source" VARCHAR DEFAULT 'KAI';
 
 -- DB Migrations
 

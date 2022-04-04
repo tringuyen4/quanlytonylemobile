@@ -92,6 +92,14 @@ const PURCHASING_INVOICE = {
     products: [],
 }
 
+const FOR_SALE_INVOICE = {
+    invoice_id: null,
+    sale_date: null,
+    quantity: 0,
+    total_money: 0,
+    products: [],
+}
+
 module.exports = {
     DATA_TABLES,
     KAI_DATA_TABLES,
@@ -103,5 +111,6 @@ module.exports = {
     INVOICE,
     INVOICE_DETAIL,
     PURCHASING_DETAIL,
-    PURCHASING_INVOICE
+    PURCHASING_INVOICE,
+    FOR_SALE_INVOICE
 }

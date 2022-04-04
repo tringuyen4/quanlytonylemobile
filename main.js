@@ -14,9 +14,14 @@ const {
     DATA_TABLES, CUSTOMER
 } = require("./constants/data.constant");
 const {HTTP_STATUSES} = require("./constants/http.constant");
-const {notEmpty} = require("./utils/data.utils");
-const {INVOICE_TYPE} = require("./constants/common.constant");
+const {notEmpty, isEmpty} = require("./utils/data.utils");
+const {INVOICE_TYPE, PRODUCT_SOURCE, INVOICE_STATUS} = require("./constants/common.constant");
 const {InvoicingService} = require("./services/invoicing.service");
+const {ProductService} = require("./services/product.service");
+const {CustomerService} = require("./services/customer.service");
+const {StatisticsService} = require("./services/statistics.service");
+const {ExportService} = require("./services/export.service");
+const {ReportService} = require("./services/report.service");
 
 //MySQL connection
 // var connection = mysql.createConnection({
@@ -55,7 +60,15 @@ const pool = new Pool({
     // }
 })
 
+/**
+ * Initialize Services
+ */
 const invoicingService = new InvoicingService(pool);
+const productService = new ProductService(pool);
+const customerService = new CustomerService(pool);
+const statisticsService = new StatisticsService(pool);
+const reportService = new ReportService(pool);
+const exportService = new ExportService();
 
 module.exports = {pool}
 
@@ -1023,19 +1036,9 @@ app.get(KAI_SERVICES.CUSTOMERS, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const getCustomerQuery = `SELECT id,
-                                     name_vietnamese,
-                                     name_japanese,
-                                     birthday,
-                                     age,
-                                     address,
-                                     phone,
-                                     job
-                              FROM ${DATA_TABLES.CUSTOMER};`
-
-    pool.query(getCustomerQuery)
-        .then(({rows}) => {
-            return res.status(HTTP_STATUSES.OK).json(rows);
+    customerService.getAllCustomers()
+        .then((customers) => {
+            return res.status(HTTP_STATUSES.OK).json(customers);
         })
         .catch((e) => {
             console.log('>>>> ERROR: Get All Customers error: ', e);
@@ -1043,6 +1046,7 @@ app.get(KAI_SERVICES.CUSTOMERS, (req, res) => {
                 error: 'Can not get customer'
             });
         });
+
 });
 
 // Insert new customer
@@ -1054,9 +1058,7 @@ app.post(KAI_SERVICES.CUSTOMERS, function (req, res) {
     res.header('content-type', 'application/json');
 
     const {name_vietnamese, name_japanese, birthday, age, address, phone, job} = req.body;
-    const insertCustomerSql = `INSERT INTO ${DATA_TABLES.CUSTOMER} (name_vietnamese, name_japanese, birthday, age, address, phone, job)
-                               VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`;
-    pool.query(insertCustomerSql, Object.values({
+    customerService.addCustomer({
         name_vietnamese,
         name_japanese,
         birthday,
@@ -1064,8 +1066,8 @@ app.post(KAI_SERVICES.CUSTOMERS, function (req, res) {
         address,
         phone,
         job
-    })).then(({rows}) => {
-        return res.status(HTTP_STATUSES.CREATED).json(rows[0]);
+    }).then((customer) => {
+        return res.status(HTTP_STATUSES.CREATED).json(customer);
     }).catch(e => {
         console.log('>>>> ERROR: Create customer error: ', e);
         return res.status(HTTP_STATUSES.BAD_REQUEST).json({
@@ -1083,18 +1085,8 @@ app.put(KAI_SERVICES.CUSTOMERS, function (req, res) {
     res.header('content-type', 'application/json');
 
     const {id, name_vietnamese, name_japanese, birthday, age, address, phone, job} = req.body;
-    const updateCustomerQuery = `UPDATE ${DATA_TABLES.CUSTOMER}
-                                 SET name_vietnamese = $2,
-                                     name_japanese= $3,
-                                     birthday=$4,
-                                     age=$5,
-                                     address=$6,
-                                     phone=$7,
-                                     job=$8
-                                 WHERE id = $1`;
 
-    pool.query(updateCustomerQuery, Object.values({
-        id,
+    customerService.updateCustomer(id, {
         name_vietnamese,
         name_japanese,
         birthday,
@@ -1102,8 +1094,8 @@ app.put(KAI_SERVICES.CUSTOMERS, function (req, res) {
         address,
         phone,
         job
-    })).then(r => {
-        return res.status(HTTP_STATUSES.NO_CONTENT).json(null);
+    }).then((customer) => {
+        return res.status(HTTP_STATUSES.OK).json(customer);
     }).catch(e => {
         console.log('>>>> ERROR: Update customer error: ', e);
         return res.status(HTTP_STATUSES.BAD_REQUEST).json({
@@ -1120,15 +1112,12 @@ app.delete(`${KAI_SERVICES.CUSTOMERS}/:id`, function (req, res) {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const deleteCustomerQuery = `DELETE
-                                 FROM ${DATA_TABLES.CUSTOMER}
-                                 WHERE id = $1`;
-    pool.query(deleteCustomerQuery, [req.params.id])
+    customerService.deleteCustomer(req.params.id)
         .then(r => {
             return res.status(HTTP_STATUSES.NO_CONTENT).json(null);
         })
         .catch(e => {
-            console.log(`>>>> ERROR: Can not delete customer with id = ${req.params.id}`)
+            console.log(`>>>> ERROR: Can not delete customer with id = ${req.params.id} --> error: `, e)
             return res.status(HTTP_STATUSES.BAD_REQUEST).json({
                 error: `Can not delete customer with id = ${req.params.id}`
             });
@@ -1145,42 +1134,263 @@ app.post(`${KAI_SERVICES.CUSTOMERS}/search`, (req, res) => {
 
     const {search_type, query} = req.body;
 
-    if (notEmpty(query) && notEmpty(search_type)) {
-        let queryStr = null;
+    customerService.searchCustomer(search_type, query)
+        .then((customers) => {
+            return res.status(HTTP_STATUSES.OK).json(customers);
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not search customer: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not search customer`
+            });
+        });
+});
 
-        switch (search_type) {
-            case 'BIRTHDAY':
-            default:
-                queryStr = `SELECT id,
-                                   name_vietnamese,
-                                   name_japanese,
-                                   birthday,
-                                   age,
-                                   address,
-                                   phone,
-                                   job
-                            FROM ${DATA_TABLES.CUSTOMER}
-                            WHERE birthday = '${query.birthday}'`;
-                break;
-        }
+/**
+ * Products
+ */
 
-        if (notEmpty(queryStr)) {
-            pool.query(queryStr)
-                .then(({rows}) => {
-                    return res.status(HTTP_STATUSES.OK).json(rows);
-                })
-                .catch(e => {
-                    console.log('>>>> ERROR: Can not query the customer data: ', e);
-                    return res.status(HTTP_STATUSES.BAD_REQUEST).json({
-                        error: 'Can not query the customer data',
-                    })
-                })
-        } else {
-            return res.status(HTTP_STATUSES.OK).json([]);
-        }
-    } else {
-        return res.status(HTTP_STATUSES.OK).json([]);
-    }
+// Get all products
+app.get(KAI_SERVICES.PRODUCTS, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    productService.getAllProducts(null)
+        .then(products => {
+            return res.status(HTTP_STATUSES.OK).json(products)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not search product. --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not search product`
+            });
+        });
+});
+
+// Get All Product for KAI store
+app.get(`${KAI_SERVICES.PRODUCTS}/kai`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    productService.getAllProducts(PRODUCT_SOURCE.KAI)
+        .then(products => {
+            return res.status(HTTP_STATUSES.OK).json(products)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not search product for KAI store. --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not search product for KAI store`
+            });
+        });
+
+});
+
+// Get all product in shop VN
+app.get(`${KAI_SERVICES.PRODUCTS}/shop-vn`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    productService.getAllProducts(PRODUCT_SOURCE.SHOP_VN)
+        .then(products => {
+            return res.status(HTTP_STATUSES.OK).json(products)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not search product for Shop VN. --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not search product for Shop VN`
+            });
+        });
+
+});
+
+// Get all product for shop JP
+app.get(`${KAI_SERVICES.PRODUCTS}/shop-jp`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    productService.getAllProducts(PRODUCT_SOURCE.SHOP_JP)
+        .then(products => {
+            return res.status(HTTP_STATUSES.OK).json(products)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not search product for Shop JP. --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not search product for Shop JP`
+            });
+        });
+
+});
+
+// Get all product for Warehouse
+app.get(`${KAI_SERVICES.PRODUCTS}/warehouse`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    productService.getAllProducts(PRODUCT_SOURCE.WAREHOUSE)
+        .then(products => {
+            return res.status(HTTP_STATUSES.OK).json(products)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not search product for Warehouse. --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not search product for Warehouse`
+            });
+        });
+});
+
+/**
+ * For Sale Invoices
+ */
+
+// Create new for sale invoice
+app.post(`${KAI_SERVICES.FOR_SALE_INVOICES}`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+    const {products, quantity, total_money, sale_date} = req.body;
+
+    invoicingService.forSaleInvoice({
+        quantity,
+        total_money,
+        sale_date,
+        products
+    }).then((invoiceDetail) => {
+        return res.status(HTTP_STATUSES.OK).json(invoiceDetail);
+    }).catch(e => {
+        console.log('>>> ERROR: Can not create for sale invoice. ---> error: ', e);
+        return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+            error: 'Can not create for sale invoice.'
+        })
+    })
+
+});
+
+// Get pending for sale invoice
+app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/pending`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getForSaleInvoiceByStatus(INVOICE_STATUS.PROCESSING)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+
+});
+
+// Get pending for sale invoice
+app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/completed`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getForSaleInvoiceByStatus(INVOICE_STATUS.COMPLETED)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+
+});
+
+// Cancel a for sale invoice
+app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/cancel/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+
+    invoicingService.cancelForSaleInvoice(id)
+        .then(isSuccess => {
+            return res.status(HTTP_STATUSES.OK).json({success: isSuccess});
+        })
+        .catch(e => {
+            console.log(`>>> ERROR: Can not cancel the invoice with id = ${id}. ---> error: `, e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not cancel for sale invoice with id = ${id}`
+            })
+        })
+
+});
+
+// Approve a for sale invoice
+app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/approve/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+
+    invoicingService.approveForSaleInvoice(id)
+        .then(isSuccess => {
+            return res.status(HTTP_STATUSES.OK).json({success: isSuccess});
+        })
+        .catch(e => {
+            console.log(`>>> ERROR: Can not cancel the invoice with id = ${id}. ---> error: `, e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not cancel for sale invoice with id = ${id}`
+            })
+        })
+
+});
+
+// Get for sale invoice detail
+app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/detail/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+
+    invoicingService.getForSaleInvoiceDetail(id)
+        .then((invoiceDetail) => {
+            return res.status(HTTP_STATUSES.OK).json(invoiceDetail);
+        })
+        .catch(e => {
+            console.log(`>>> ERROR: Can not detail of the for sale invoice with id = ${id}. ---> error: `, e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not detail of the for sale invoice with id = ${id}`
+            })
+        })
+
 });
 
 /**
@@ -1195,20 +1405,9 @@ app.get(KAI_SERVICES.PURCHASING_INVOICES, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const purchasingInvoiceQuery = `SELECT i.id,
-                                           c.name_vietnamese,
-                                           i.sale_date,
-                                           i.total_quantity as quantity,
-                                           i.total_money
-                                    FROM ${DATA_TABLES.INVOICE} i,
-                                         ${DATA_TABLES.PURCHASING_DETAIL} pd,
-                                         ${DATA_TABLES.CUSTOMER} c
-                                    WHERE i.id = pd.invoice_id
-                                      AND pd.customer_id = c.id
-                                      AND i."type" = '${INVOICE_TYPE.PURCHASING}';`;
-    pool.query(purchasingInvoiceQuery)
-        .then(({rows}) => {
-            return res.status(HTTP_STATUSES.OK).json(rows);
+    invoicingService.getAllPurchasingInvoices()
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
         })
         .catch(e => {
             console.log('>>>> ERROR: Can not query purchasing invoices data: ', e);
@@ -1227,73 +1426,21 @@ app.get(`${KAI_SERVICES.PURCHASING_INVOICES}/:id`, (req, res) => {
     res.header('content-type', 'application/json');
 
     const {id} = req.params;
-    let invoiceDetail = {
-        invoice_id: 0,
-        quantity: 0,
-        total_money: 0,
-        sale_date: null,
-        customer: null,
-        products: []
-    }
     if (notEmpty(id)) {
-        const getInvoiceItemQuery = `SELECT pd.invoice_id,
-                                            i.total_quantity AS quantity,
-                                            i.sale_date,
-                                            i.total_money,
-                                            pd.customer_id
-                                     FROM ${DATA_TABLES.INVOICE} i,
-                                          ${DATA_TABLES.PURCHASING_DETAIL} pd
-                                     WHERE i.id = pd.invoice_id
-                                       AND pd.invoice_id = $1
-                                       AND i."type" = '${INVOICE_TYPE.PURCHASING}' LIMIT 1;`;
-        pool.query(getInvoiceItemQuery, [id])
-            .then(({rows}) => {
-                if (rows.length > 0) {
-                    const invoice = rows[0];
-                    invoiceDetail = {...invoiceDetail, ...invoice};
-
-                    // Enrich invoice info with customer and product items
-                    const getCustomerQuery = `SELECT *
-                                              FROM ${DATA_TABLES.CUSTOMER}
-                                              WHERE id = $1 LIMIT 1;`;
-                    const getProductsQuery = `SELECT p.*
-                                              FROM invoice i,
-                                                   invoice_detail id,
-                                                   purchasing_detail pd,
-                                                   product p
-                                              WHERE i.id = id.invoice_id
-                                                AND i.id = pd.invoice_id
-                                                AND p.id = id.product_id
-                                                AND i."type" = '${INVOICE_TYPE.PURCHASING}'
-                                                AND pd.invoice_id = $1;`;
-
-                    Promise.all([
-                        pool.query(getCustomerQuery, [invoice.customer_id]),
-                        pool.query(getProductsQuery, [id]),
-                    ])
-                        .then(([customerResult, productsResult]) => {
-                            invoiceDetail.customer = customerResult.rows.length > 0 ? customerResult.rows[0] : null;
-                            invoiceDetail.products = productsResult.rows.length > 0 ? productsResult.rows : [];
-                            return res.status(HTTP_STATUSES.OK).json(invoiceDetail);
-                        })
-                        .catch(e => {
-                            console.log(`>>>> ERROR: Can not get customer and products for purchasing invoice: ${id} -> error: `, e);
-                            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
-                                error: `Can not get customer and products for purchasing invoice = ${id}`
-                            });
-                        })
-
-
+        invoicingService.getPurchasingInvoiceDetail(id)
+            .then((invoiceDetail) => {
+                if (notEmpty(invoiceDetail)) {
+                    return res.status(HTTP_STATUSES.OK).json(invoiceDetail)
                 } else {
-                    return res.status(HTTP_STATUSES.NO_CONTENT).json(null);
+                    return res.status(HTTP_STATUSES.NO_CONTENT).json(null)
                 }
             })
             .catch(e => {
-                console.log(`>>>> ERROR: Can not get item for invoice: ${id} -> error: `, e);
+                console.log('>>>> ERROR: Can not get invoice detail -> error: ', e);
                 return res.status(HTTP_STATUSES.BAD_REQUEST).json({
                     error: `Can not get items for invoice with id = ${id}`
-                });
-            });
+                })
+            })
     } else {
         return res.status(HTTP_STATUSES.BAD_REQUEST).json({
             error: `Can not get items for invoice with id = ${id}`
@@ -1328,66 +1475,63 @@ app.post(`${KAI_SERVICES.PURCHASING_INVOICES}`, (req, res) => {
                 error: 'Can not create/update invoice'
             })
         })
-    // let customer_id = null; // For later use to get the customer
-    // let product_ids = []; // For later use to get the products
-    //
-    //
-    // // Step 1: create/insert/update new invoice
-    // // @Todo: Setup invoice query
-    // let invoiceQuery = '';
-    // let invoiceData = {};
-    // if (notEmpty(invoice_id)) {
-    //     invoiceQuery = '';
-    // }
-    // pool.query(invoiceQuery, invoiceData).then(({rows}) => {
-    //
-    //     // Step 2: Insert/Update customer and products: Must run inside step 1
-    //     const promises = []; // List Promise query for insert/update customer and products
-    //     // @Todo: Build the add/update customer query
-    //     if (notEmpty(customer.id)) {
-    //         // @Todo: Build update customer query and params: make sure RETURNING id
-    //         const updateCustomerQuery = ``;
-    //         const customerData = {
-    //             id: customer.id,
-    //             name_vietnamese: customer.name_vietnamese,
-    //             name_japanese: customer.name_japanese,
-    //             birthday: customer.birthday,
-    //             age: customer.age,
-    //             address: customer.address,
-    //             phone: customer.phone,
-    //             job: customer.job,
-    //         };
-    //         promises.push(
-    //             pool.query(updateCustomerQuery, Object.values(customerData))
-    //                 .then(({rows}) => {
-    //                     const {id} = rows[0];
-    //                     customer_id = id;
-    //                 })
-    //         );
-    //     } else {
-    //         // @Todo: Build insert customer query and params: make sure RETURNING id
-    //     }
-    //
-    //
-    //     // @Todo: Build the delete product query that not exists in invoice: make sure the invoice_id exists
-    //     const removeProductInDetailQuery = ``;
-    //
-    //     // @Todo: Build the update and create products query promise
-    //     products.forEach((product) => {
-    //         if (notEmpty(product.id)) {
-    //             // @Todo: Push update product query to promises: make sure update list product_ids for updated product
-    //         } else {
-    //             // @Todo: Push insert product query to promises: make sure update list product_ids for updated product
-    //         }
-    //
-    //     });
-    //
-    //     // @Todo: Finish Step 2 handle promises
-    //     Promise.all(promises).then(r => {
-    //         // Step 3: Enrich data for invoice_detail and purchasing_detail also re-fetch customer and products
-    //     })
-    //
-    // });
+});
+
+// Get Purchasing Invoices detail
+app.get(`${KAI_SERVICES.PURCHASING_INVOICES}/report/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+    if (notEmpty(id)) {
+        reportService.kaiPurchasingInvoiceReport(id)
+            .then(reportData => {
+                exportService.invoiceReport(reportData)
+                    .then((bufferResponse) => {
+                        console.log('>>> Generate Invoice Report Finished! Customer Name: ', reportData.reportHeader.name_vietnamese);
+                        res.end(bufferResponse);
+                    })
+                    .catch(e => {
+                        console.log('>>>> Can not export purchasing invoice for Customer with name: ', reportData.reportHeader.name_vietnamese);
+                        res.end(null);
+                    });
+            })
+            .catch(e => {
+                console.log('>>>> Can not export purchasing invoice for Customer with invoice id: ', id);
+                res.end(null);
+            })
+    } else {
+        return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+            error: `Can not get items for invoice with id = ${id}`
+        })
+    }
+
+});
+
+/**
+ * Statistics
+ */
+app.post(`${KAI_SERVICES.STATISTICS}`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {type, from_date, to_date} = req.body;
+    statisticsService.getKaiStatistics(type, from_date, to_date)
+        .then((statistics) => {
+            return res.status(HTTP_STATUSES.OK).json(statistics)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get KAI statistics. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get KAI statistics.'
+            })
+        })
 
 
 });
