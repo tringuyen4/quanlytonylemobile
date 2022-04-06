@@ -1170,6 +1170,25 @@ app.get(KAI_SERVICES.PRODUCTS, (req, res) => {
         });
 });
 
+app.get(`${KAI_SERVICES.PRODUCTS}/sold`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    productService.getSoldProducts(null)
+        .then(products => {
+            return res.status(HTTP_STATUSES.OK).json(products)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not search product. --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not search product`
+            });
+        });
+});
+
 // Get All Product for KAI store
 app.get(`${KAI_SERVICES.PRODUCTS}/kai`, (req, res) => {
     res.header("Access-Control-Allow-Origin", "*");
@@ -1179,6 +1198,27 @@ app.get(`${KAI_SERVICES.PRODUCTS}/kai`, (req, res) => {
     res.header('content-type', 'application/json');
 
     productService.getAllProducts(PRODUCT_SOURCE.KAI)
+        .then(products => {
+            return res.status(HTTP_STATUSES.OK).json(products)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not search product for KAI store. --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not search product for KAI store`
+            });
+        });
+
+});
+
+// Get All Product for KAI store
+app.get(`${KAI_SERVICES.PRODUCTS}/sold/kai`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    productService.getSoldProducts(PRODUCT_SOURCE.KAI)
         .then(products => {
             return res.status(HTTP_STATUSES.OK).json(products)
         })
@@ -1212,6 +1252,27 @@ app.get(`${KAI_SERVICES.PRODUCTS}/shop-vn`, (req, res) => {
 
 });
 
+// Get all product in shop VN
+app.get(`${KAI_SERVICES.PRODUCTS}/sold/shop-vn`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    productService.getSoldProducts(PRODUCT_SOURCE.SHOP_VN)
+        .then(products => {
+            return res.status(HTTP_STATUSES.OK).json(products)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not search product for Shop VN. --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not search product for Shop VN`
+            });
+        });
+
+});
+
 // Get all product for shop JP
 app.get(`${KAI_SERVICES.PRODUCTS}/shop-jp`, (req, res) => {
     res.header("Access-Control-Allow-Origin", "*");
@@ -1233,6 +1294,27 @@ app.get(`${KAI_SERVICES.PRODUCTS}/shop-jp`, (req, res) => {
 
 });
 
+// Get all product for shop JP
+app.get(`${KAI_SERVICES.PRODUCTS}/sold/shop-jp`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    productService.getSoldProducts(PRODUCT_SOURCE.SHOP_JP)
+        .then(products => {
+            return res.status(HTTP_STATUSES.OK).json(products)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not search product for Shop JP. --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not search product for Shop JP`
+            });
+        });
+
+});
+
 // Get all product for Warehouse
 app.get(`${KAI_SERVICES.PRODUCTS}/warehouse`, (req, res) => {
     res.header("Access-Control-Allow-Origin", "*");
@@ -1242,6 +1324,26 @@ app.get(`${KAI_SERVICES.PRODUCTS}/warehouse`, (req, res) => {
     res.header('content-type', 'application/json');
 
     productService.getAllProducts(PRODUCT_SOURCE.WAREHOUSE)
+        .then(products => {
+            return res.status(HTTP_STATUSES.OK).json(products)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not search product for Warehouse. --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not search product for Warehouse`
+            });
+        });
+});
+
+// Get all product for Warehouse
+app.get(`${KAI_SERVICES.PRODUCTS}/sold/warehouse`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    productService.getSoldProducts(PRODUCT_SOURCE.WAREHOUSE)
         .then(products => {
             return res.status(HTTP_STATUSES.OK).json(products)
         })
