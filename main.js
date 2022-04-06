@@ -55,9 +55,9 @@ app.use(cors());
 
 const pool = new Pool({
     connectionString,
-    //   ssl: {
-    //   rejectUnauthorized: false
-    // }
+      ssl: {
+      rejectUnauthorized: false
+    }
 })
 
 /**
