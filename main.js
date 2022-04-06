@@ -1348,7 +1348,7 @@ app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/cancel/:id`, (req, res) => {
 });
 
 // Approve a for sale invoice
-app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/approve/:id`, (req, res) => {
+app.post(`${KAI_SERVICES.FOR_SALE_INVOICES}/approve/:id`, (req, res) => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
@@ -1356,8 +1356,9 @@ app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/approve/:id`, (req, res) => {
     res.header('content-type', 'application/json');
 
     const {id} = req.params;
+    const {sale_date, quantity, total_money, products} = req.body;
 
-    invoicingService.approveForSaleInvoice(id)
+    invoicingService.approveForSaleInvoice({ sale_date, quantity, total_money, products}, id)
         .then(isSuccess => {
             return res.status(HTTP_STATUSES.OK).json({success: isSuccess});
         })

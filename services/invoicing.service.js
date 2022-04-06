@@ -107,6 +107,12 @@ class InvoicingService {
             })
     }
 
+    // @Todo: Implement the delete purchasing invoice
+    deletePurchasingInvoice(invoiceId = 0) {
+        // Step 1: Update product quantity
+        // Step 2: Update status of invoice to TERMINATED
+    }
+
 
     // For Sale Invoices
     forSaleInvoice(forSaleInvoiceData = null) {
@@ -123,7 +129,7 @@ class InvoicingService {
     }
 
     getForSaleInvoiceByStatus(invoiceStatus = INVOICE_STATUS.PROCESSING) {
-        const forSaleInvoiceQuery = `SELECT id, sale_date, total_quantity as quantity, total_money
+        const forSaleInvoiceQuery = `SELECT id as invoice_id, sale_date, total_quantity as quantity, total_money
                                      FROM ${DATA_TABLES.INVOICE}
                                      WHERE type = '${INVOICE_TYPE.FOR_SALE}'
                                        AND status = '${invoiceStatus}';`;
@@ -170,11 +176,13 @@ class InvoicingService {
             })
     }
 
-    approveForSaleInvoice(invoiceId = 0) {
+    approveForSaleInvoice(forSaleInvoiceData, invoiceId = 0) {
         return this.pool.query(`UPDATE ${DATA_TABLES.INVOICE}
                                 SET status = '${INVOICE_STATUS.COMPLETED}'
                                 WHERE id = ${invoiceId};`)
-            .then(() => true)
+            .then(() => {
+                return true;
+            })
             .catch(e => {
                 throw e;
             })
@@ -208,6 +216,15 @@ class InvoicingService {
     }
 
     // Transfer invoice
+
+    /**
+     * PROCESSING METHODS
+     */
+
+    _processApproveForSaleInvoiceUpdateDetail(forSaleInvoiceData, invoiceId) {
+
+    }
+
 
     _processForSaleInvoice(invoiceData = null) {
         const {quantity, sale_date, total_money} = invoiceData;
