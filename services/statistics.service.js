@@ -21,10 +21,10 @@ class StatisticsService {
         }
 
         return Promise.all(promises)
-            .then(([invoice_statistics, order_statistics]) => {
+            .then(([purchasing_statistics, for_sale_statistics]) => {
                 return {
-                    invoice_statistics,
-                    order_statistics
+                    purchasing_statistics,
+                    for_sale_statistics
                 }
             });
     }
@@ -53,8 +53,8 @@ class StatisticsService {
     }
 
     _kaiOrderStatisticsByMonth(fromDate, toDate) {
-        const queryString = `SELECT date.dateyear,
-                                    date.datemonth,
+        const queryString = `SELECT date.dateyear as year_date,
+                                    date.datemonth as month_date,
                                     CASE WHEN data.quantity IS NULL THEN 0 ELSE data.quantity END,
                                     CASE WHEN data.total_money IS NULL THEN 0 ELSE data.total_money END
                              FROM (select DISTINCT EXTRACT(YEAR FROM CURRENT_DATE + i)  as dateyear,
@@ -110,8 +110,8 @@ class StatisticsService {
     }
 
     _kaiInvoiceStatisticsByMonth(fromDate, toDate) {
-        const statisticByMonthQuery = `SELECT date.dateyear,
-                                              date.datemonth,
+        const statisticByMonthQuery = `SELECT date.dateyear as year_date,
+                                              date.datemonth as month_date,
                                               CASE WHEN data.quantity IS NULL THEN 0 ELSE data.quantity END,
                                               CASE WHEN data.total_money IS NULL THEN 0 ELSE data.total_money END
                                        FROM (select DISTINCT EXTRACT(YEAR FROM CURRENT_DATE + i)  as dateyear,
