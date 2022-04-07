@@ -7,7 +7,9 @@ class ProductService {
     }
 
     getAllProducts(position = null) {
-        let queryStr = `SELECT id, name,imei, color, status, quantity, price FROM ${DATA_TABLES.PRODUCT} WHERE quantity > 0`;
+        let queryStr = `SELECT id, name, imei, color, status, quantity, price
+                        FROM ${DATA_TABLES.PRODUCT}
+                        WHERE quantity > 0`;
         queryStr += notEmpty(position) ? ` AND position = '${position}';` : `;`;
         return this.pool.query(queryStr)
             .then(({rows}) => rows)
@@ -18,8 +20,10 @@ class ProductService {
 
     getSoldProducts(position = null) {
         let queryStr = `SELECT DISTINCT p.id, p.name, p.imei, p.color, p.status, p.quantity, p.price
-                        FROM ${DATA_TABLES.PRODUCT} p, ${DATA_TABLES.INVOICE_DETAIL} id
-                        WHERE p.id = id.product_id AND p.quantity > 0`;
+                        FROM ${DATA_TABLES.PRODUCT} p,
+                             ${DATA_TABLES.INVOICE_DETAIL} id
+                        WHERE p.id = id.product_id
+                          AND p.quantity > 0`;
         queryStr += notEmpty(position) ? ` AND position = '${position}';` : `;`;
         return this.pool.query(queryStr)
             .then(({rows}) => rows)
@@ -27,6 +31,30 @@ class ProductService {
                 throw e;
             });
     }
+
+    insertProduct(productData = null) {
+        const {imei, color, status, quantity, price, position, source} = productData;
+        const insertProductSql = `INSERT INTO ${DATA_TABLES.PRODUCT} (imei, color, status, quantity, price, position, source)
+                                  VALUES ($1, $2, $3, $4, $5, $6, $7)
+                                  RETURNING *;`;
+        return this.pool.query(insertProductSql).then(({rows}) => rows).catch(e => {
+            throw e
+        });
+    }
+
+    deleteProduct(productId = 0) {
+        const deleteProductQuery = `DELETE
+                                    FROM ${DATA_TABLES.PRODUCT}
+                                    WHERE id = $1;`;
+        return this.pool.query(deleteProductQuery, [productId])
+            .then((r) => {
+                return {id: productId}
+            })
+            .catch(e => {
+                throw e;
+            })
+    }
+
 }
 
 module.exports = {
