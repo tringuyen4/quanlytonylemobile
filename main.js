@@ -1114,7 +1114,7 @@ app.delete(`${KAI_SERVICES.CUSTOMERS}/:id`, function (req, res) {
 
     customerService.deleteCustomer(req.params.id)
         .then(r => {
-            return res.status(HTTP_STATUSES.NO_CONTENT).json(null);
+            return res.status(HTTP_STATUSES.NO_CONTENT).json(r);
         })
         .catch(e => {
             console.log(`>>>> ERROR: Can not delete customer with id = ${req.params.id} --> error: `, e)
