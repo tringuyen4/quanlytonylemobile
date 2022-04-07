@@ -1,6 +1,7 @@
 const {DATA_TABLES} = require("../constants/data.constant");
 const {HTTP_STATUSES} = require("../constants/http.constant");
 const {notEmpty} = require("../utils/data.utils");
+const {INVOICE_STATUS} = require("../constants/common.constant")
 
 class CustomerService {
     constructor(dbPool) {
@@ -83,16 +84,30 @@ class CustomerService {
     }
 
     deleteCustomer(customerId) {
-        const deleteCustomerQuery = `DELETE
-                                     FROM ${DATA_TABLES.CUSTOMER}
-                                     WHERE id = $1`;
-        return this.pool.query(deleteCustomerQuery, [customerId])
-            .then((r) => {
-                return {id: customerId}
-            })
-            .catch(e => {
-                throw e;
-            })
+        const customerProductQuery = `
+                                    select id.product_id, id.quantity 
+                                    from ${DATA_TABLES.CUSTOMER} c , ${DATA_TABLES.PURCHASING_DETAIL} pd, ${DATA_TABLES.INVOICE_DETAIL} id 
+                                    where c.id = pd.customer_id and id.invoice_id = pd.invoice_id and c.id = $1
+                                    `;
+        return this.pool.query(customerProductQuery, [customerId])
+                    .then(({rows}) => {
+                        const promises = [];
+                        rows.forEach((product) => {
+                            const {product_id, quantity} = product;
+                            promises.push(this.pool.query(`update ${DATA_TABLES.PRODUCT} set quantity= quantity - $2 where id = $1`, [product_id, quantity]))
+                        });
+                        return Promise.all(promises)
+                                    .then(() => {
+                                        return this.pool.query(`update ${DATA_TABLES.INVOICE} set status = '${INVOICE_STATUS.TERMINATED}' where id in (select invoice_id from ${DATA_TABLES.PURCHASING_DETAIL} where customer_id = $1)`, [customerId])
+                                                    .then(() => {
+                                                        return this.pool.query(`delete from ${DATA_TABLES.CUSTOMER} where id = ${customerId}`)
+                                                                    .then(() => {
+                                                                        return true;
+                                                                    });
+                                                    });
+                                    });
+
+                    })
     }
 
     searchCustomer(search_type = 'BIRTHDAY', query = null) {
