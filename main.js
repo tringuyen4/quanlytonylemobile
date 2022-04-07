@@ -1631,6 +1631,48 @@ app.post(`${KAI_SERVICES.PURCHASING_INVOICES}`, (req, res) => {
         })
 });
 
+app.post(`${KAI_SERVICES.PURCHASING_INVOICES}/save-and-report`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {invoice_id, customer, products, quantity, total_money, sale_date} = req.body;
+    invoicingService.purchasingInvoice({
+        invoice_id,
+        customer,
+        products,
+        quantity,
+        total_money,
+        sale_date
+    })
+        .then((purchasingInvoice) => {
+            reportService.kaiPurchasingInvoiceReport(purchasingInvoice.invoice_id)
+                .then(reportData => {
+                    exportService.invoiceReport(reportData)
+                        .then((bufferResponse) => {
+                            console.log('>>> Generate Invoice Report Finished! Customer Name: ', reportData.reportHeader.name_vietnamese);
+                            res.end(bufferResponse);
+                        })
+                        .catch(e => {
+                            console.log('>>>> Can not export purchasing invoice for Customer with name: ', reportData.reportHeader.name_vietnamese);
+                            res.end(null);
+                        });
+                })
+                .catch(e => {
+                    console.log('>>>> Can not export purchasing invoice for Customer with invoice id: ', id);
+                    res.end(null);
+                })
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not create/update invoice: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not create/update invoice'
+            })
+        })
+});
+
 // Delete Purchasing Invoice
 app.delete(`${KAI_SERVICES.PURCHASING_INVOICES}/:id`, (req, res) => {
     res.header("Access-Control-Allow-Origin", "*");
