@@ -1364,10 +1364,10 @@ app.post(`${KAI_SERVICES.PRODUCTS}`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {imei, color, status, quantity, price, position, source} = req.body;
+    const {imei, name, color, status, quantity, price, position, source} = req.body;
 
     productService.insertProduct({
-        imei, color, status, quantity, price, position, source
+        imei, name, color, status, quantity, price, position, source
     })
         .then(productDetail => {
             return res.status(HTTP_STATUSES.OK).json(productDetail)
@@ -1629,6 +1629,30 @@ app.post(`${KAI_SERVICES.PURCHASING_INVOICES}`, (req, res) => {
                 error: 'Can not create/update invoice'
             })
         })
+});
+
+// Delete Purchasing Invoice
+app.delete(`${KAI_SERVICES.PURCHASING_INVOICES}/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+
+    invoicingService.deletePurchasingInvoice(id)
+        .then(result => {
+            return res.status(HTTP_STATUSES.OK).json(result);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not delete purchasing invoice. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not delete purchasing invoice.'
+            })
+        })
+
+
 });
 
 // Get Purchasing Invoices detail

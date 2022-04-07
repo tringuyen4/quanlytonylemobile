@@ -39,7 +39,8 @@ class InvoicingService {
                                              ${DATA_TABLES.CUSTOMER} c
                                         WHERE i.id = pd.invoice_id
                                           AND pd.customer_id = c.id
-                                          AND i."type" = '${INVOICE_TYPE.PURCHASING}';`;
+                                          AND i."type" = '${INVOICE_TYPE.PURCHASING}'
+                                          AND i.status != '${INVOICE_STATUS.TERMINATED}';`;
 
         return this.pool.query(purchasingInvoiceQuery)
             .then(({rows}) => rows)
@@ -107,10 +108,61 @@ class InvoicingService {
             })
     }
 
-    // @Todo: Implement the delete purchasing invoice
+    /**
+     * Delete purchasing invoice
+     * @param invoiceId
+     * @return {*}
+     */
     deletePurchasingInvoice(invoiceId = 0) {
         // Step 1: Update product quantity
-        // Step 2: Update status of invoice to TERMINATED
+        const getPurchasingProductsQuery = `SELECT p.id AS product_id, id.quantity AS purchasing_quantity
+                                            FROM ${DATA_TABLES.PRODUCT} p,
+                                                 ${DATA_TABLES.INVOICE} i,
+                                                 ${DATA_TABLES.INVOICE_DETAIL} id,
+                                                 ${DATA_TABLES.PURCHASING_DETAIL} pd
+                                            WHERE p.id = id.product_id
+                                              AND i.id = id.invoice_id
+                                              AND i.id = pd.invoice_id
+                                              AND i."type" = '${INVOICE_TYPE.PURCHASING}'
+                                              AND i.status != '${INVOICE_STATUS.TERMINATED}'
+                                              AND pd.invoice_id = $1;`
+        return this.pool.query(getPurchasingProductsQuery, [invoiceId])
+            .then(({rows}) => {
+                const promises = [];
+                rows.forEach((purchasingProduct) => {
+                    const {product_id, purchasing_quantity} = purchasingProduct;
+                    const updateProductQuantityQuery = `UPDATE ${DATA_TABLES.PRODUCT}
+                                                        SET quantity = quantity - ${purchasing_quantity}
+                                                        WHERE id = ${product_id};`;
+                    promises.push(
+                        this.pool.query(updateProductQuantityQuery)
+                    )
+                });
+                return Promise.all(promises)
+                    .then(r => {
+                        // Step 2: Update status of invoice to TERMINATED
+                        return this.pool.query(`UPDATE ${DATA_TABLES.INVOICE}
+                                                SET status = '${INVOICE_STATUS.TERMINATED}'
+                                                WHERE id = ${invoiceId}
+                                                RETURNING id;`)
+                            .then((rows) => {
+                                if (rows.length > 0) {
+                                    const {id} = rows[0];
+                                    return {id};
+                                }
+                                return null;
+                            })
+                            .catch(e => {
+                                throw e;
+                            })
+                    })
+                    .catch(e => {
+                        throw e;
+                    })
+            })
+            .catch(e => {
+                throw  e
+            });
     }
 
 
