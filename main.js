@@ -1355,6 +1355,57 @@ app.get(`${KAI_SERVICES.PRODUCTS}/sold/warehouse`, (req, res) => {
         });
 });
 
+
+// Get all product for shop JP
+app.post(`${KAI_SERVICES.PRODUCTS}`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {imei, color, status, quantity, price, position, source} = req.body;
+
+    productService.insertProduct({
+        imei, color, status, quantity, price, position, source
+    })
+        .then(productDetail => {
+            return res.status(HTTP_STATUSES.OK).json(productDetail)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not insert product --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not insert product for`
+            });
+        });
+});
+
+
+// Get all product for shop JP
+app.delete(`${KAI_SERVICES.PRODUCTS}/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+
+    productService.deleteProduct(id)
+        .then(r => {
+            return res.status(HTTP_STATUSES.OK).json({
+                success: notEmpty(r),
+                deletedId: id
+            });
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not insert product --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not insert product for`
+            });
+        });
+});
+
 /**
  * For Sale Invoices
  */
@@ -1460,7 +1511,7 @@ app.post(`${KAI_SERVICES.FOR_SALE_INVOICES}/approve/:id`, (req, res) => {
     const {id} = req.params;
     const {sale_date, quantity, total_money, products} = req.body;
 
-    invoicingService.approveForSaleInvoice({ sale_date, quantity, total_money, products}, id)
+    invoicingService.approveForSaleInvoice({sale_date, quantity, total_money, products}, id)
         .then(isSuccess => {
             return res.status(HTTP_STATUSES.OK).json({success: isSuccess});
         })
