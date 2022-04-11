@@ -1,6 +1,6 @@
 const {Pool} = require('pg')
 const {KAI_DATA_TABLES, DATA_TABLES} = require("../constants/data.constant");
-const {INVOICE_TYPE, INVOICE_STATUS} = require("../constants/common.constant");
+const {INVOICE_TYPE, INVOICE_STATUS, PRODUCT_SOURCE} = require("../constants/common.constant");
 
 class ReplicateService {
     constructor(kaiConnectionString, sellMobileConnectionString) {
@@ -39,9 +39,13 @@ class ReplicateService {
             this.pool.query(`DELETE
                              FROM ${DATA_TABLES.INVOICE};`),
             this.pool.query(`DELETE
+                             FROM ${DATA_TABLES.PRODUCT_STORAGE};`),
+            this.pool.query(`DELETE
                              FROM ${DATA_TABLES.PRODUCT};`),
             this.pool.query(`DELETE
-                             FROM ${DATA_TABLES.CUSTOMER};`)
+                             FROM ${DATA_TABLES.CUSTOMER};`),
+            this.pool.query(`DELETE
+                             FROM ${DATA_TABLES.TRANSFER_DETAIL};`),
         ]);
     }
 
@@ -228,24 +232,70 @@ class ReplicateService {
 
     _insertProductData(products = []) {
         const promises = [];
-        const queryString = 'INSERT INTO ' + DATA_TABLES.PRODUCT + ' (id, name, imei, color, status, quantity, price, created_at, updated_at) OVERRIDING SYSTEM VALUE VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)';
+        const queryString = `INSERT INTO ${DATA_TABLES.PRODUCT} (id, name, imei, color, status,
+                                                                 created_at, updated_at)
+                                 OVERRIDING SYSTEM VALUE
+                             VALUES ($1, $2, $3, $4, $5, $6, $7)
+                             RETURNING *;`;
         products.forEach((product) => {
-            promises.push(this.pool.query(queryString, [
-                product.id,
-                product.name,
-                product.imei,
-                product.color,
-                product.status,
-                1, // Default value of quantity will be 1
-                product.price,
-                product.created_at,
-                product.updated_at
-            ]));
+            promises.push(
+                this.pool.query(queryString, [
+                    product.id,
+                    product.name,
+                    product.imei,
+                    product.color,
+                    product.status,
+                    product.created_at,
+                    product.updated_at
+                ])
+                    .then(({rows}) => {
+                        if (rows.length > 0) {
+                            const {id, name, imei, color, status} = rows[0];
+                            return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
+                                                    VALUES ($1, $2, $3, $4, $5)
+                                                    RETURNING *;`,
+                                Object.values({
+                                    product_id: id,
+                                    quantity: 1, // Default value from KAI is 1
+                                    price: product.price,
+                                    position: PRODUCT_SOURCE.KAI,
+                                    source: PRODUCT_SOURCE.KAI
+                                }))
+                                .then(({rows}) => {
+                                    const productDetail = {
+                                        id,
+                                        name,
+                                        imei,
+                                        color,
+                                        status,
+                                        quantity: 0,
+                                        price: 0,
+                                        position: null,
+                                        source: null
+                                    }
+                                    if (rows.length > 0) {
+                                        const {quantity, price, position, source} = rows[0];
+                                        productDetail.quantity = quantity;
+                                        productDetail.price = price;
+                                        productDetail.position = position;
+                                        productDetail.source = source;
+                                    }
+                                    return productDetail;
+                                })
+
+                        }
+                    })
+                    .catch(e => {
+                        throw e
+                    })
+            );
         });
         return Promise.all(promises).then((r) => {
             // Reset sequence value
-            return this.pool.query(`SELECT pg_catalog.setval(pg_get_serial_sequence('${DATA_TABLES.PRODUCT}', 'id'), MAX(id)) FROM ${DATA_TABLES.PRODUCT};`).then(r => {
+            return this.pool.query(`SELECT pg_catalog.setval(pg_get_serial_sequence('${DATA_TABLES.PRODUCT}', 'id'), MAX(id))
+                                    FROM ${DATA_TABLES.PRODUCT};`).then(r => {
                 console.log('>>>>> Finish replicate product data.');
+                return true
             })
         });
     }
@@ -269,7 +319,8 @@ class ReplicateService {
         });
         return Promise.all(promises).then((r) => {
             // Reset sequence value
-            return this.pool.query(`SELECT pg_catalog.setval(pg_get_serial_sequence('${DATA_TABLES.CUSTOMER}', 'id'), MAX(id)) FROM ${DATA_TABLES.CUSTOMER};`).then(r => {
+            return this.pool.query(`SELECT pg_catalog.setval(pg_get_serial_sequence('${DATA_TABLES.CUSTOMER}', 'id'), MAX(id))
+                                    FROM ${DATA_TABLES.CUSTOMER};`).then(r => {
                 console.log('>>>>> Finish replicate customer data.');
             })
         });

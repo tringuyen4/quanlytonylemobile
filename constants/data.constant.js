@@ -18,10 +18,12 @@ const KAI_DATA_TABLES = {
 
 const DATA_TABLES = {
     PRODUCT: 'product',
+    PRODUCT_STORAGE: 'product_storage',
     CUSTOMER: 'customer',
     INVOICE: 'invoice',
     INVOICE_DETAIL: 'invoice_detail',
-    PURCHASING_DETAIL: 'purchasing_detail'
+    PURCHASING_DETAIL: 'purchasing_detail',
+    TRANSFER_DETAIL: 'transfer_detail'
 }
 
 // Because Javascript not support interface so we have some constant object as model

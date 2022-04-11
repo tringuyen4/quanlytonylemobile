@@ -1,4 +1,6 @@
 -- Init KAI Schemas
+
+-- Product
 CREATE TABLE product
 (
     id         INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -6,19 +8,27 @@ CREATE TABLE product
     imei       VARCHAR   NOT NULL,
     color      VARCHAR   NOT NULL,
     status     VARCHAR   NOT NULL,
-    quantity   INT       NOT NULL DEFAULT 1,
-    price      BIGINT    NOT NULL DEFAULT 0,
-    position   VARCHAR   NULL     DEFAULT 'KAI',
-    source     VARCHAR   NULL     DEFAULT 'KAI',
-    group_name VARCHAR   NULL,
-    type_name  VARCHAR   NULL,
-    capacity   VARCHAR   NULL,
-    version    VARCHAR   NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Product Storage
+CREATE TABLE product_storage
+(
+    product_id INT       NOT NULL,
+    quantity   INT       NOT NULL DEFAULT 1,
+    price      DECIMAL    NOT NULL DEFAULT 0,
+    position   VARCHAR   NULL     DEFAULT 'KAI',
+    source     VARCHAR   NULL     DEFAULT 'KAI',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (product_id, position),
+    CONSTRAINT fk_storage_product
+        FOREIGN KEY (product_id)
+            REFERENCES product (id) ON DELETE CASCADE
+);
 
+-- Customer
 CREATE TABLE customer
 (
     id              INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -39,19 +49,20 @@ CREATE TABLE invoice
     id             INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     sale_date      DATE      NOT NULL,
     total_quantity INT       NOT NULL,
-    total_money    BIGINT    NOT NULL,
+    total_money    DECIMAL    NOT NULL,
     type           VARCHAR   NULL, -- PURCHASING, FOR_SALE
     status         VARCHAR   NULL, -- NEW, PROCESSING, COMPLETED, CANCELED
     created_at     timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at     timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Invoice detail for general
 CREATE TABLE invoice_detail
 (
     invoice_id INT       NOT NULL,
     product_id INT       NOT NULL,
     quantity   INT       NOT NULL DEFAULT 1,
-    price      BIGINT    NOT NULL,
+    price      DECIMAL    NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (invoice_id, product_id),
@@ -78,12 +89,26 @@ CREATE TABLE purchasing_detail
             REFERENCES customer (id) ON DELETE CASCADE
 );
 
-
--- Add missing column for product table: position, source
-ALTER TABLE product
-    ADD COLUMN "position" VARCHAR DEFAULT 'KAI';
-ALTER TABLE product
-    ADD COLUMN "source" VARCHAR DEFAULT 'KAI';
-
--- DB Migrations
-
+-- Invoice transfer detail
+CREATE TABLE transfer_detail
+(
+    invoice_id      INT       NOT NULL,
+    product_id      INT       NOT NULL,
+    from_position   VARCHAR   NULL     DEFAULT 'KAI',
+    to_position     VARCHAR   NULL     DEFAULT 'KAI',
+    quantity        INT       NOT NULL DEFAULT 1,
+    price           DECIMAL    NOT NULL DEFAULT 0,
+    exchange_rate   DECIMAL   NOT NULL DEFAULT 1,
+    sub_fee         DECIMAL   NOT NULL DEFAULT 0,
+    transfer_price  DECIMAL    NOT NULL DEFAULT 0,
+    transfer_status VARCHAR   NULL, -- NEW, PROCESSING, TRANSFERRED, CANCELED
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (invoice_id, product_id),
+    CONSTRAINT fk_transfer_invoice_detail
+        FOREIGN KEY (invoice_id)
+            REFERENCES invoice (id) ON DELETE CASCADE,
+    CONSTRAINT fk_transfer_invoice_product
+        FOREIGN KEY (product_id)
+            REFERENCES product (id) ON DELETE CASCADE
+);
