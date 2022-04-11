@@ -32,11 +32,11 @@ const {ReportService} = require("./services/report.service");
 // });
 
 //
-var connectionString =
-    'postgres://ypdfdqvewxxgly:7ac1504434e43a831ed167ce89a7e5069f7b549cced29bdaab42e50fc7b5297c@ec2-3-227-15-75.compute-1.amazonaws.com:5432/ddoocbjabks5u0'
+// var connectionString =
+//     'postgres://ypdfdqvewxxgly:7ac1504434e43a831ed167ce89a7e5069f7b549cced29bdaab42e50fc7b5297c@ec2-3-227-15-75.compute-1.amazonaws.com:5432/ddoocbjabks5u0'
 
 
-// var connectionString = 'postgres://postgres:12345678@localhost:5432/sellmobile_v2'
+var connectionString = 'postgres://postgres:12345678@localhost:5432/sellmobile_v2'
 
 
 app.use(cors());
@@ -55,9 +55,9 @@ app.use(cors());
 
 const pool = new Pool({
     connectionString,
-      ssl: {
-      rejectUnauthorized: false
-    }
+    //   ssl: {
+    //   rejectUnauthorized: false
+    // }
 })
 
 /**
@@ -1380,6 +1380,30 @@ app.post(`${KAI_SERVICES.PRODUCTS}`, (req, res) => {
         });
 });
 
+// Get all product for shop JP
+app.put(`${KAI_SERVICES.PRODUCTS}`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id, imei, name, color, status, quantity, price, position, source} = req.body;
+
+    productService.updateProduct({
+        id, imei, name, color, status, quantity, price, position, source
+    })
+        .then(productDetail => {
+            return res.status(HTTP_STATUSES.OK).json(productDetail)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not insert product --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not insert product for`
+            });
+        });
+});
+
 
 // Get all product for shop JP
 app.delete(`${KAI_SERVICES.PRODUCTS}/:id`, (req, res) => {
@@ -1535,6 +1559,98 @@ app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/detail/:id`, (req, res) => {
     const {id} = req.params;
 
     invoicingService.getForSaleInvoiceDetail(id)
+        .then((invoiceDetail) => {
+            return res.status(HTTP_STATUSES.OK).json(invoiceDetail);
+        })
+        .catch(e => {
+            console.log(`>>> ERROR: Can not detail of the for sale invoice with id = ${id}. ---> error: `, e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not detail of the for sale invoice with id = ${id}`
+            })
+        })
+
+});
+
+// Get for sale invoice detail for KAI
+app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/kai/detail/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+
+    invoicingService.getForSaleInvoiceDetail(id, PRODUCT_SOURCE.KAI)
+        .then((invoiceDetail) => {
+            return res.status(HTTP_STATUSES.OK).json(invoiceDetail);
+        })
+        .catch(e => {
+            console.log(`>>> ERROR: Can not detail of the for sale invoice with id = ${id}. ---> error: `, e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not detail of the for sale invoice with id = ${id}`
+            })
+        })
+
+});
+
+// Get for sale invoice detail for Shop JP
+app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/shop-jp/detail/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+
+    invoicingService.getForSaleInvoiceDetail(id, PRODUCT_SOURCE.SHOP_JP)
+        .then((invoiceDetail) => {
+            return res.status(HTTP_STATUSES.OK).json(invoiceDetail);
+        })
+        .catch(e => {
+            console.log(`>>> ERROR: Can not detail of the for sale invoice with id = ${id}. ---> error: `, e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not detail of the for sale invoice with id = ${id}`
+            })
+        })
+
+});
+
+// Get for sale invoice detail for Shop VN
+app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/shop-vn/detail/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+
+    invoicingService.getForSaleInvoiceDetail(id, PRODUCT_SOURCE.SHOP_VN)
+        .then((invoiceDetail) => {
+            return res.status(HTTP_STATUSES.OK).json(invoiceDetail);
+        })
+        .catch(e => {
+            console.log(`>>> ERROR: Can not detail of the for sale invoice with id = ${id}. ---> error: `, e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not detail of the for sale invoice with id = ${id}`
+            })
+        })
+
+});
+
+// Get for sale invoice detail for Shop VN
+app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/warehouse/detail/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+
+    invoicingService.getForSaleInvoiceDetail(id, PRODUCT_SOURCE.WAREHOUSE)
         .then((invoiceDetail) => {
             return res.status(HTTP_STATUSES.OK).json(invoiceDetail);
         })
@@ -1703,7 +1819,6 @@ app.get(`${KAI_SERVICES.PURCHASING_INVOICES}/report/:id`, (req, res) => {
     res.header("Access-Control-Allow-Credentials", true);
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
-    res.header('content-type', 'application/json');
 
     const {id} = req.params;
     if (notEmpty(id)) {
@@ -1729,6 +1844,604 @@ app.get(`${KAI_SERVICES.PURCHASING_INVOICES}/report/:id`, (req, res) => {
         })
     }
 
+});
+
+/**
+ * Transferring
+ */
+
+// Create new transfer invoice
+app.post(`${KAI_SERVICES.TRANSFERRING_INVOICES}`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const transferData = req.body;
+    invoicingService.transferInvoice(transferData).then(r => {
+        return res.status(HTTP_STATUSES.CREATED).json(null);
+    })
+        .catch(e => {
+            console.log('>>> ERROR: Can not create transfer invoice --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not create transfer invoice.'
+            })
+        })
+});
+
+// Delete Purchasing Invoice
+app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/approve/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+    invoicingService.approveTransferInvoice(id)
+        .then((result) => {
+            return res.status(HTTP_STATUSES.NO_CONTENT).json(result)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not approve transfer invoice --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not approve transfer invoice.'
+            })
+        })
+
+});
+
+// Delete Purchasing Invoice
+app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/approve/:id/:product_id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+    const {id, product_id} = req.params;
+    invoicingService.approveTransferInvoiceItem(id, product_id)
+        .then((result) => {
+            return res.status(HTTP_STATUSES.NO_CONTENT).json(result);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not approve transfer invoice item --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not approve transfer invoice item.'
+            })
+        })
+});
+
+// Cancel Purchasing Invoice
+app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/cancel/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+    invoicingService.cancelTransferInvoice(id)
+        .then((result) => {
+            return res.status(HTTP_STATUSES.NO_CONTENT).json(result)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not approve transfer invoice --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not approve transfer invoice.'
+            })
+        })
+
+});
+
+// Cancel Transferring Invoice Item
+app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/cancel/:id/:product_id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+    const {id, product_id} = req.params;
+    invoicingService.cancelTransferInvoiceItem(id, product_id)
+        .then((result) => {
+            return res.status(HTTP_STATUSES.NO_CONTENT).json(result);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not approve transfer invoice item --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not approve transfer invoice item.'
+            })
+        })
+});
+
+// Get pending for sale invoice
+app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/pending`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getTransferringInvoiceByStatus(INVOICE_STATUS.PROCESSING)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+});
+
+// Get all KAI pending transfer invoice
+app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/pending/kai`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getTransferringInvoiceByStatus(INVOICE_STATUS.PROCESSING, PRODUCT_SOURCE.KAI)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+});
+
+app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/pending/shop-jp`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getTransferringInvoiceByStatus(INVOICE_STATUS.PROCESSING, PRODUCT_SOURCE.SHOP_JP)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+});
+
+app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/pending/shop-vn`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getTransferringInvoiceByStatus(INVOICE_STATUS.PROCESSING, PRODUCT_SOURCE.SHOP_VN)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+});
+
+app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/pending/warehouse`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getTransferringInvoiceByStatus(INVOICE_STATUS.PROCESSING, PRODUCT_SOURCE.WAREHOUSE)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+});
+
+// Get pending for sale invoice
+app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/completed`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getTransferringInvoiceByStatus(INVOICE_STATUS.COMPLETED)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+});
+
+// Get all KAI pending transfer invoice
+app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/completed/kai`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getTransferringInvoiceByStatus(INVOICE_STATUS.COMPLETED, PRODUCT_SOURCE.KAI)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+});
+
+app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/completed/shop-jp`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getTransferringInvoiceByStatus(INVOICE_STATUS.COMPLETED, PRODUCT_SOURCE.SHOP_JP)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+});
+
+app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/completed/shop-vn`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getTransferringInvoiceByStatus(INVOICE_STATUS.COMPLETED, PRODUCT_SOURCE.SHOP_VN)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+});
+
+app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/completed/warehouse`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getTransferringInvoiceByStatus(INVOICE_STATUS.COMPLETED, PRODUCT_SOURCE.WAREHOUSE)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+});
+
+// Get for sale invoice detail for KAI
+app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/kai/detail/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+
+    invoicingService.getTransferringInvoiceDetail(id, PRODUCT_SOURCE.KAI)
+        .then((invoiceDetail) => {
+            return res.status(HTTP_STATUSES.OK).json(invoiceDetail);
+        })
+        .catch(e => {
+            console.log(`>>> ERROR: Can not detail of the for sale invoice with id = ${id}. ---> error: `, e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not detail of the for sale invoice with id = ${id}`
+            })
+        })
+
+});
+
+// Get for sale invoice detail for Shop VN
+app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/shop-vn/detail/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+
+    invoicingService.getTransferringInvoiceDetail(id, PRODUCT_SOURCE.SHOP_VN)
+        .then((invoiceDetail) => {
+            return res.status(HTTP_STATUSES.OK).json(invoiceDetail);
+        })
+        .catch(e => {
+            console.log(`>>> ERROR: Can not detail of the for sale invoice with id = ${id}. ---> error: `, e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not detail of the for sale invoice with id = ${id}`
+            })
+        })
+
+});
+
+// Get for sale invoice detail for Shop JP
+app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/shop-jp/detail/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+
+    invoicingService.getTransferringInvoiceDetail(id, PRODUCT_SOURCE.SHOP_JP)
+        .then((invoiceDetail) => {
+            return res.status(HTTP_STATUSES.OK).json(invoiceDetail);
+        })
+        .catch(e => {
+            console.log(`>>> ERROR: Can not detail of the for sale invoice with id = ${id}. ---> error: `, e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not detail of the for sale invoice with id = ${id}`
+            })
+        })
+
+});
+
+// Get for sale invoice detail for Warehouse
+app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/warehouse/detail/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+
+    invoicingService.getTransferringInvoiceDetail(id, PRODUCT_SOURCE.WAREHOUSE)
+        .then((invoiceDetail) => {
+            return res.status(HTTP_STATUSES.OK).json(invoiceDetail);
+        })
+        .catch(e => {
+            console.log(`>>> ERROR: Can not detail of the for sale invoice with id = ${id}. ---> error: `, e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not detail of the for sale invoice with id = ${id}`
+            })
+        })
+
+});
+
+/**
+ * General Invoices
+ */
+
+// Get pending for sale invoice
+app.get(`${KAI_SERVICES.INVOICES}/pending`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getInvoiceByStatus(INVOICE_STATUS.PROCESSING)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+});
+
+// Get pending invoices for KAI
+app.get(`${KAI_SERVICES.INVOICES}/pending/kai`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getInvoiceByStatus(INVOICE_STATUS.PROCESSING, PRODUCT_SOURCE.KAI)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+});
+
+// Get pending invoices for KAI
+app.get(`${KAI_SERVICES.INVOICES}/pending/shop-vn`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getInvoiceByStatus(INVOICE_STATUS.PROCESSING, PRODUCT_SOURCE.SHOP_VN)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+});
+
+// Get pending invoices for KAI
+app.get(`${KAI_SERVICES.INVOICES}/pending/shop-jp`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getInvoiceByStatus(INVOICE_STATUS.PROCESSING, PRODUCT_SOURCE.SHOP_JP)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+});
+
+// Get pending invoices for KAI
+app.get(`${KAI_SERVICES.INVOICES}/pending/warehouse`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getInvoiceByStatus(INVOICE_STATUS.PROCESSING, PRODUCT_SOURCE.WAREHOUSE)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+});
+
+// Get pending for sale invoice
+app.get(`${KAI_SERVICES.INVOICES}/completed`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getInvoiceByStatus(INVOICE_STATUS.COMPLETED)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+});
+
+// Get pending invoices for KAI
+app.get(`${KAI_SERVICES.INVOICES}/completed/kai`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getInvoiceByStatus(INVOICE_STATUS.COMPLETED, PRODUCT_SOURCE.KAI)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+});
+
+// Get pending invoices for KAI
+app.get(`${KAI_SERVICES.INVOICES}/completed/shop-vn`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getInvoiceByStatus(INVOICE_STATUS.COMPLETED, PRODUCT_SOURCE.SHOP_VN)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+});
+
+// Get pending invoices for KAI
+app.get(`${KAI_SERVICES.INVOICES}/completed/shop-jp`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getInvoiceByStatus(INVOICE_STATUS.COMPLETED, PRODUCT_SOURCE.SHOP_JP)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
+});
+
+// Get pending invoices for KAI
+app.get(`${KAI_SERVICES.INVOICES}/completed/warehouse`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    invoicingService.getInvoiceByStatus(INVOICE_STATUS.COMPLETED, PRODUCT_SOURCE.WAREHOUSE)
+        .then((invoices) => {
+            return res.status(HTTP_STATUSES.OK).json(invoices);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get pending for sale invoices. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not query pending for sale invoices data'
+            })
+        })
 });
 
 /**

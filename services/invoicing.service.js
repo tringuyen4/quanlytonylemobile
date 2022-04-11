@@ -1,10 +1,12 @@
 const {PURCHASING_INVOICE, DATA_TABLES, FOR_SALE_INVOICE} = require("../constants/data.constant");
-const {INVOICE_TYPE, INVOICE_STATUS} = require("../constants/common.constant");
+const {INVOICE_TYPE, INVOICE_STATUS, PRODUCT_SOURCE, TRANSFER_STATUS} = require("../constants/common.constant");
 const {notEmpty, isEmpty} = require("../utils/data.utils");
+const {ProductService} = require("./product.service");
 
 class InvoicingService {
     constructor(pool = null) {
         this.pool = pool; // Connection pool
+        this.productService = new ProductService(this.pool);
     }
 
     // Public Methods
@@ -29,7 +31,7 @@ class InvoicingService {
     }
 
     getAllPurchasingInvoices() {
-        const purchasingInvoiceQuery = `SELECT i.id,
+        const purchasingInvoiceQuery = `SELECT i.id             as invoice_id,
                                                c.name_vietnamese,
                                                i.sale_date,
                                                i.total_quantity as quantity,
@@ -43,7 +45,22 @@ class InvoicingService {
                                           AND i.status != '${INVOICE_STATUS.TERMINATED}';`;
 
         return this.pool.query(purchasingInvoiceQuery)
-            .then(({rows}) => rows)
+            .then(({rows}) => {
+                if (rows.length > 0) {
+                    return rows.map(purchasingInvoice => {
+                        return {
+                            invoice_id: purchasingInvoice.invoice_id,
+                            sale_date: purchasingInvoice.sale_date,
+                            quantity: purchasingInvoice.quantity,
+                            total_money: purchasingInvoice.total_money,
+                            customer: {
+                                name_vietnamese: purchasingInvoice.name_vietnamese
+                            }
+                        }
+                    })
+                }
+                return [];
+            })
             .catch(e => {
                 throw e
             });
@@ -165,7 +182,6 @@ class InvoicingService {
             });
     }
 
-
     // For Sale Invoices
     forSaleInvoice(forSaleInvoiceData = null) {
         // Step 1: Create/Update for sale invoice
@@ -240,12 +256,15 @@ class InvoicingService {
             })
     }
 
-    getForSaleInvoiceDetail(invoiceId = 0) {
+    getForSaleInvoiceDetail(invoiceId = 0, position = PRODUCT_SOURCE.KAI) {
         const invoiceDetail = FOR_SALE_INVOICE;
-        return this.pool.query(`SELECT p.id, p.name, p.imei, p.color, p.status, p.quantity, p.price
+        return this.pool.query(`SELECT p.id, p.name, p.imei, p.color, p.status, ps.quantity, ps.price
                                 FROM ${DATA_TABLES.PRODUCT} p,
+                                     ${DATA_TABLES.PRODUCT_STORAGE} ps,
                                      ${DATA_TABLES.INVOICE_DETAIL} id
                                 WHERE p.id = id.product_id
+                                  AND p.id = ps.product_id
+                                  AND ps.position = '${position}'
                                   AND id.invoice_id = ${invoiceId};`)
             .then(({rows}) => {
                 invoiceDetail.products = rows;
@@ -267,16 +286,407 @@ class InvoicingService {
             });
     }
 
-    // Transfer invoice
-
     /**
-     * PROCESSING METHODS
+     * =============================
+     *  TRANSFER INVOICE
+     * =============================
      */
+    transferInvoice(transferData = null) {
+        const {
+            sale_date,
+            total_quantity,
+            total_money,
+            from_position,
+            to_position,
+            exchange_rate,
+            sub_fee,
+            products
+        } = transferData;
+        // Create new invoice and invoice item with invoice items in PROCESSING transfer status
+        const purchasingInvoiceQuery = `INSERT INTO ${DATA_TABLES.INVOICE} (sale_date, total_quantity, total_money, type, status)
+                                        VALUES ($1, $2, $3, $4, $5)
+                                        RETURNING *;`;
+        return this.pool.query(purchasingInvoiceQuery, Object.values({
+            sale_date,
+            total_quantity,
+            total_money,
+            type: INVOICE_TYPE.TRANSFERRING,
+            status: INVOICE_STATUS.PROCESSING
+        }))
+            .then(({rows}) => {
+                // Update for transfer_detail
+                const {id} = rows[0];
+                const promises = [];
+                products.forEach((transferProduct) => {
+                    const {quantity, price} = transferProduct;
+                    const product_id = transferProduct.id;
+                    // Calculate the total_money if transfer from other position to vn storage\
+                    let transfer_price = price;
+                    if (from_position !== to_position && to_position === PRODUCT_SOURCE.SHOP_VN) {
+                        transfer_price = (transfer_price * exchange_rate) + sub_fee;
+                    }
+                    promises.push(
+                        this.pool.query(`INSERT INTO ${DATA_TABLES.TRANSFER_DETAIL} (invoice_id, product_id,
+                                                                                     from_position,
+                                                                                     to_position, quantity,
+                                                                                     price, exchange_rate,
+                                                                                     sub_fee, transfer_price,
+                                                                                     transfer_status)
+                                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                                         RETURNING *;`,
+                            Object.values({
+                                invoice_id: id,
+                                product_id,
+                                from_position,
+                                to_position,
+                                quantity,
+                                price,
+                                exchange_rate,
+                                sub_fee,
+                                transfer_price,
+                                transfer_status: TRANSFER_STATUS.PROCESSING
+                            })
+                        )
+                    )
 
-    _processApproveForSaleInvoiceUpdateDetail(forSaleInvoiceData, invoiceId) {
-
+                    return Promise.all(promises).then(r => {
+                        return {
+                            invoice_id: id
+                        }
+                    }).catch(e => {
+                        throw e
+                    })
+                })
+            })
+            .catch(e => {
+                throw e
+            })
     }
 
+    approveTransferInvoiceItem(invoiceId = 0, productId = 0) {
+        return this.pool.query(`SELECT *
+                                FROM ${DATA_TABLES.TRANSFER_DETAIL}
+                                WHERE invoice_id = $1
+                                  AND product_id = $2
+                                  AND transfer_status = $3`, [invoiceId, productId, TRANSFER_STATUS.PROCESSING])
+            .then(({rows}) => {
+                if (rows.length > 0) {
+                    const {quantity, from_position, to_position, price} = rows[0];
+                    return Promise.all([
+                        this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
+                                         SET quantity = quantity - $1
+                                         WHERE product_id = $2
+                                           AND position = $3`, [quantity, productId, from_position]),
+                        this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
+                                         SET quantity = quantity + $1
+                                         WHERE product_id = $2
+                                           AND position = $3
+                                         RETURNING *;`, [quantity, productId, to_position])
+                            .then(({rows}) => {
+                                if (rows.length === 0) {
+                                    // In-case can not update we will insert new one
+                                    return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
+                                                            VALUES ($1, $2, $3, $4, $5)
+                                                            RETURNING *`, [productId, quantity, price, to_position, from_position])
+                                        .then(({rows}) => rows[0])
+                                        .catch(e => {
+                                            throw e
+                                        })
+                                } else {
+                                    return Promise.resolve(true)
+                                }
+                            }),
+                        this.pool.query(`UPDATE ${DATA_TABLES.TRANSFER_DETAIL}
+                                         SET transfer_status = $1
+                                         WHERE invoice_id = $2
+                                           AND product_id = $3`, [TRANSFER_STATUS.TRANSFERRED, invoiceId, productId]),
+                    ])
+                        .then((r) => {
+                            return this.pool.query(`UPDATE ${DATA_TABLES.INVOICE}
+                                                    SET status = '${INVOICE_STATUS.COMPLETED}'
+                                                    WHERE (
+                                                              SELECT count(*)
+                                                              FROM ${DATA_TABLES.TRANSFER_DETAIL} tt
+                                                              WHERE tt.invoice_id = $1
+                                                                AND tt.transfer_status = '${TRANSFER_STATUS.PROCESSING}'
+                                                          ) = 0
+                                                      AND id = $1
+                                                      AND status = '${INVOICE_STATUS.PROCESSING}'
+                                                    RETURNING *;`, [invoiceId])
+                                .then(({rows}) => {
+                                    return {invoice_id: invoiceId, product_id: productId}
+                                })
+                                .catch(e => {
+                                    throw e
+                                })
+                        })
+                        .catch(e => {
+                            throw e
+                        })
+                }
+            })
+            .catch(e => {
+                throw e
+            })
+    }
+
+    cancelTransferInvoiceItem(invoiceId = 0, productId = 0) {
+        return this.pool.query(`SELECT *
+                                FROM ${DATA_TABLES.TRANSFER_DETAIL}
+                                WHERE invoice_id = $1
+                                  AND product_id = $2
+                                  AND transfer_status = $3`, [invoiceId, productId, TRANSFER_STATUS.PROCESSING])
+            .then(({rows}) => {
+                if (rows.length > 0) {
+                    const {quantity, from_position, to_position, price} = rows[0];
+                    return this.pool.query(`UPDATE ${DATA_TABLES.TRANSFER_DETAIL}
+                                            SET transfer_status = $1
+                                            WHERE invoice_id = $2
+                                              AND product_id = $3`, [TRANSFER_STATUS.CANCELED, invoiceId, productId])
+                        .then((r) => {
+                            return this.pool.query(`UPDATE ${DATA_TABLES.INVOICE}
+                                                    SET status = '${INVOICE_STATUS.TERMINATED}'
+                                                    WHERE (
+                                                              SELECT count(*)
+                                                              FROM ${DATA_TABLES.TRANSFER_DETAIL} tt
+                                                              WHERE tt.invoice_id = $1
+                                                                AND tt.transfer_status = '${TRANSFER_STATUS.PROCESSING}'
+                                                          ) = 0
+                                                      AND id = $1
+                                                      AND status = '${INVOICE_STATUS.PROCESSING}'
+                                                    RETURNING *;`, [invoiceId])
+                                .then(({rows}) => {
+                                    return {invoice_id: invoiceId, product_id: productId}
+                                })
+                                .catch(e => {
+                                    throw e
+                                })
+                        })
+                        .catch(e => {
+                            throw e
+                        })
+                }
+            })
+            .catch(e => {
+                throw e
+            })
+    }
+
+    approveTransferInvoice(invoiceId = 0) {
+        // Get all transfer items
+        return this.pool.query(`SELECT *
+                                FROM ${DATA_TABLES.TRANSFER_DETAIL}
+                                WHERE invoice_id = ${invoiceId};`)
+            .then(({rows}) => {
+                const promises = [];
+                rows.forEach((transferItem) => {
+                    const {product_id, from_position, to_position, quantity, transfer_status, price} = transferItem;
+                    if (transfer_status === TRANSFER_STATUS.PROCESSING) {
+                        // Update target storage
+                        promises.push(
+                            this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
+                                             SET quantity = quantity + $1
+                                             WHERE product_id = $2
+                                               AND position = $3
+                                             RETURNING *;`, [quantity, product_id, to_position])
+                                .then(({rows}) => {
+                                    if (rows.length > 0) {
+                                        return rows[0]
+                                    } else {
+                                        // In-case can not update we will insert new one
+                                        return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
+                                                                VALUES ($1, $2, $3, $4, $5)
+                                                                RETURNING *`, [product_id, quantity, price, to_position, from_position])
+                                            .then(({rows}) => rows[0])
+                                            .catch(e => {
+                                                throw e
+                                            })
+                                    }
+                                })
+                                .catch(e => {
+                                    throw e
+                                })
+                        )
+
+                        // Update source storage
+                        promises.push(this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
+                                                       SET quantity = quantity - $1
+                                                       WHERE product_id = $2
+                                                         AND position = $3`, [quantity, product_id, from_position]));
+
+                        // Update transfer item status to transferred
+                        promises.push(this.pool.query(`UPDATE ${DATA_TABLES.TRANSFER_DETAIL}
+                                                       SET transfer_status = $1
+                                                       WHERE invoice_id = $2
+                                                         AND product_id = $3`, [TRANSFER_STATUS.TRANSFERRED, invoiceId, product_id]));
+                    }
+                })
+
+                return Promise.all(promises)
+                    .then((r) => {
+                        return this.pool.query(`UPDATE ${DATA_TABLES.INVOICE}
+                                                SET status = $1
+                                                WHERE id = $2`, [INVOICE_STATUS.COMPLETED, invoiceId])
+                            .then(({rows}) => rows[0])
+                            .catch(e => {
+                                throw e
+                            })
+                    })
+                    .catch(e => {
+                        throw e
+                    })
+            })
+            .catch(e => {
+                throw e
+            })
+    }
+
+    cancelTransferInvoice(invoiceId = 0) {
+        // Get all transfer items
+        return this.pool.query(`SELECT *
+                                FROM ${DATA_TABLES.TRANSFER_DETAIL}
+                                WHERE invoice_id = ${invoiceId};`)
+            .then(({rows}) => {
+                const promises = [];
+                rows.forEach((transferItem) => {
+                    const {product_id, from_position, to_position, quantity, transfer_status, price} = transferItem;
+                    if (transfer_status === TRANSFER_STATUS.PROCESSING) {
+                        // Update transfer item status to transferred
+                        promises.push(this.pool.query(`UPDATE ${DATA_TABLES.TRANSFER_DETAIL}
+                                                       SET transfer_status = $1
+                                                       WHERE invoice_id = $2
+                                                         AND product_id = $3`, [TRANSFER_STATUS.CANCELED, invoiceId, product_id]));
+                    }
+                })
+
+                return Promise.all(promises)
+                    .then((r) => {
+                        return this.pool.query(`UPDATE ${DATA_TABLES.INVOICE}
+                                                SET status = $1
+                                                WHERE id = $2`, [INVOICE_STATUS.TERMINATED, invoiceId])
+                            .then(({rows}) => rows[0])
+                            .catch(e => {
+                                throw e
+                            })
+                    })
+                    .catch(e => {
+                        throw e
+                    })
+            })
+            .catch(e => {
+                throw e
+            })
+    }
+
+    getTransferringInvoiceByStatus(invoiceStatus = INVOICE_STATUS.PROCESSING, position = null) {
+        let transferringInvoiceQuery = `SELECT id as invoice_id, sale_date, total_quantity as quantity, total_money
+                                        FROM ${DATA_TABLES.INVOICE}
+                                        WHERE type = '${INVOICE_TYPE.TRANSFERRING}'
+                                          AND status = '${invoiceStatus}';`;
+        if (notEmpty(position)) {
+            transferringInvoiceQuery = `SELECT i.id             as invoice_id,
+                                               i.sale_date,
+                                               i.total_quantity as quantity,
+                                               i.total_money
+                                        FROM ${DATA_TABLES.INVOICE} i,
+                                             ${DATA_TABLES.TRANSFER_DETAIL} td
+                                        WHERE i.id = td.invoice_id
+                                          AND i."type" = '${INVOICE_TYPE.TRANSFERRING}'
+                                          AND i.status = '${invoiceStatus}'
+                                          AND td.to_position = '${position}'
+                                        GROUP BY i.id`
+        }
+        return this.pool.query(transferringInvoiceQuery)
+            .then(({rows}) => rows)
+            .catch(e => {
+                throw e;
+            })
+    }
+
+    getInvoiceByStatus(invoiceStatus = INVOICE_STATUS.PROCESSING, position = null) {
+        let transferringInvoiceQuery = `SELECT id             as invoice_id,
+                                               sale_date,
+                                               total_quantity as quantity,
+                                               total_money,
+                                               type
+                                        FROM ${DATA_TABLES.INVOICE}
+                                        WHERE type = '${INVOICE_TYPE.TRANSFERRING}'
+                                          AND status = '${invoiceStatus}';`;
+        let forSaleInvoiceQuery = `SELECT id as invoice_id, sale_date, total_quantity as quantity, total_money, type
+                                   FROM ${DATA_TABLES.INVOICE}
+                                   WHERE type = '${INVOICE_TYPE.FOR_SALE}'
+                                     AND status = '${invoiceStatus}';`;
+
+        if (notEmpty(position)) {
+            transferringInvoiceQuery = `SELECT i.id             as invoice_id,
+                                               i.sale_date,
+                                               i.total_quantity as quantity,
+                                               i.total_money,
+                                               i."type"
+                                        FROM ${DATA_TABLES.INVOICE} i,
+                                             ${DATA_TABLES.TRANSFER_DETAIL} td
+                                        WHERE i.id = td.invoice_id
+                                          AND i."type" = '${INVOICE_TYPE.TRANSFERRING}'
+                                          AND i.status = '${invoiceStatus}'
+                                          AND td.to_position = '${position}'
+                                        GROUP BY i.id`
+            forSaleInvoiceQuery = `SELECT i.id             as invoice_id,
+                                          i.sale_date,
+                                          i.total_quantity as quantity,
+                                          i.total_money,
+                                          i."type"
+                                   FROM ${DATA_TABLES.INVOICE} i,
+                                        ${DATA_TABLES.INVOICE_DETAIL} id,
+                                        ${DATA_TABLES.PRODUCT_STORAGE} ps
+                                   WHERE i.id = id.invoice_id
+                                     AND id.product_id = ps.product_id
+                                     AND i."type" = '${INVOICE_TYPE.FOR_SALE}'
+                                     AND i.status = '${invoiceStatus}'
+                                     AND ps."position" = '${position}'
+                                   GROUP BY i.id`
+        }
+        return Promise.all([
+            this.pool.query(transferringInvoiceQuery),
+            this.pool.query(forSaleInvoiceQuery),
+        ]).then(([transferringInvoiceResult, forSaleInvoiceResult]) => {
+            return [...transferringInvoiceResult.rows, ...forSaleInvoiceResult.rows]
+        })
+            .catch(e => {
+                throw e;
+            })
+    }
+
+    getTransferringInvoiceDetail(invoiceId = 0, position = PRODUCT_SOURCE.KAI) {
+        const invoiceDetail = FOR_SALE_INVOICE;
+        return this.pool.query(`SELECT DISTINCT p.id, p.name, p.imei, p.color, p.status, ps.quantity, ps.price
+                                FROM ${DATA_TABLES.PRODUCT} p,
+                                     ${DATA_TABLES.PRODUCT_STORAGE} ps,
+                                     ${DATA_TABLES.INVOICE_DETAIL} id,
+                                     ${DATA_TABLES.INVOICE} i
+                                WHERE p.id = id.product_id
+                                  AND p.id = ps.product_id
+                                  AND ps.position = '${position}'
+                                  AND i."type" = '${INVOICE_TYPE.TRANSFERRING}'
+                                  AND i.id = ${invoiceId};`)
+            .then(({rows}) => {
+                invoiceDetail.products = rows;
+                return this.pool.query(`SELECT id as invoice_id, sale_date, total_quantity as quantity, total_money
+                                        FROM ${DATA_TABLES.INVOICE}
+                                        WHERE id = ${invoiceId};`)
+                    .then(({rows}) => {
+                        if (rows.length > 0) {
+                            return {...invoiceDetail, ...rows[0]};
+                        }
+                        return invoiceDetail;
+                    })
+                    .catch(e => {
+                        throw e;
+                    })
+            })
+            .catch(e => {
+                throw e;
+            });
+    }
 
     _processForSaleInvoice(invoiceData = null) {
         const {quantity, sale_date, total_money} = invoiceData;

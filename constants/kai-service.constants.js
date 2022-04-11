@@ -4,8 +4,10 @@ const KAI_SERVICES = {
     REPLICATE: '/replicate',
     INVOICES: '/invoices',
     PURCHASING_INVOICES: '/invoices/purchasing',
+    TRANSFERRING_INVOICES: '/invoices/transferring',
     FOR_SALE_INVOICES: '/invoices/for-sale',
-    STATISTICS: '/statistics'
+    STATISTICS: '/statistics',
+    TRANSFERRING: '/transferring'
 }
 
 module.exports = {
