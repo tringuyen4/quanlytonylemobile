@@ -14,7 +14,6 @@ class InvoicingService {
     // Purchasing Invoices
     purchasingInvoice(purchasingInvoiceData = null) {
         // Run nested step to make sure data has been setup correctly
-
         // Step 1: Create/Update invoice -> return purchasingInvoice
         return this._processPurchasingInvoice(purchasingInvoiceData)
             .then((purchasingInvoice) => {
@@ -658,7 +657,14 @@ class InvoicingService {
 
     getTransferringInvoiceDetail(invoiceId = 0, position = PRODUCT_SOURCE.KAI) {
         const invoiceDetail = FOR_SALE_INVOICE;
-        const transferringInvoiceDetailQuery = `SELECT p.id, p.name, p.imei, p.color, p.status, td.quantity, td.price, td.transfer_status
+        const transferringInvoiceDetailQuery = `SELECT p.id,
+                                                       p.name,
+                                                       p.imei,
+                                                       p.color,
+                                                       p.status,
+                                                       td.quantity,
+                                                       td.price,
+                                                       td.transfer_status
                                                 FROM ${DATA_TABLES.INVOICE} i,
                                                      ${DATA_TABLES.TRANSFER_DETAIL} td,
                                                      ${DATA_TABLES.PRODUCT_STORAGE} ps,
@@ -890,35 +896,62 @@ class InvoicingService {
                 name: product.name,
                 imei: product.imei,
                 color: product.color,
-                status: product.status,
-                quantity: product.quantity,
-                price: product.price
+                status: product.status
             }
-            let productQuery = `INSERT INTO ${DATA_TABLES.PRODUCT} (name, imei, color, status, quantity, price)
-                                VALUES ($1, $2, $3, $4, $5, $6)
+            let productQuery = `INSERT INTO ${DATA_TABLES.PRODUCT} (name, imei, color, status)
+                                VALUES ($1, $2, $3, $4)
                                 RETURNING *;`;
             if (rows.length > 0) {
+
                 // Exists quantity
-                const {id, quantity} = rows[0];
-                if (isEmpty(product.id)) {
-                    productParams.quantity = quantity + product.quantity;
-                }
+                const {id} = rows[0];
                 productQuery = `UPDATE ${DATA_TABLES.PRODUCT}
-                                SET name     = $1,
-                                    imei     = $2,
-                                    color    = $3,
-                                    status   = $4,
-                                    quantity = $5,
-                                    price    = $6
+                                SET name   = $1,
+                                    imei   = $2,
+                                    color  = $3,
+                                    status = $4
                                 WHERE id = ${id}
                                 RETURNING *;`;
             }
+
             return this.pool.query(productQuery, Object.values(productParams)).then(({rows}) => {
-                return {
-                    product: rows[0],
-                    purchasing_quantity: product.quantity,
-                    purchasing_price: product.price
-                };
+                const {id} = rows[0];
+                return this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
+                                        SET quantity = quantity + $1,
+                                            price    = $2
+                                        WHERE product_id = $3
+                                          AND position = $4
+                                        RETURNING *;`, [product.quantity, product.price, id, product.position])
+                    .then(({rows}) => {
+                        if (rows.length > 0) {
+                            const {product_id, quantity, price} = rows[0];
+                            product.id = product_id;
+                            return {
+                                product,
+                                purchasing_quantity: quantity,
+                                purchasing_price: price
+                            };
+                        } else {
+                            return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
+                                                    VALUES ($1, $2, $3, $4, $5)
+                                                    RETURNING *;`, [id, product.quantity, product.price, product.position, product.source])
+                                .then(({rows}) => {
+                                    const {product_id, quantity, price} = rows[0];
+                                    product.id = product_id;
+                                    return {
+                                        product,
+                                        purchasing_quantity: quantity,
+                                        purchasing_price: price
+                                    };
+                                })
+                                .catch(e => {
+                                    throw e
+                                })
+                        }
+                    })
+                    .catch(e => {
+                        throw e
+                    })
             })
 
         }).catch(e => {
