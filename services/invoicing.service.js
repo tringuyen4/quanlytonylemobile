@@ -658,16 +658,18 @@ class InvoicingService {
 
     getTransferringInvoiceDetail(invoiceId = 0, position = PRODUCT_SOURCE.KAI) {
         const invoiceDetail = FOR_SALE_INVOICE;
-        return this.pool.query(`SELECT DISTINCT p.id, p.name, p.imei, p.color, p.status, ps.quantity, ps.price
-                                FROM ${DATA_TABLES.PRODUCT} p,
-                                     ${DATA_TABLES.PRODUCT_STORAGE} ps,
-                                     ${DATA_TABLES.INVOICE_DETAIL} id,
-                                     ${DATA_TABLES.INVOICE} i
-                                WHERE p.id = id.product_id
-                                  AND p.id = ps.product_id
-                                  AND ps.position = '${position}'
-                                  AND i."type" = '${INVOICE_TYPE.TRANSFERRING}'
-                                  AND i.id = ${invoiceId};`)
+        const transferringInvoiceDetailQuery = `SELECT p.id, p.name, p.imei, p.color, p.status, td.quantity, td.price, td.transfer_status
+                                                FROM ${DATA_TABLES.INVOICE} i,
+                                                     ${DATA_TABLES.TRANSFER_DETAIL} td,
+                                                     ${DATA_TABLES.PRODUCT_STORAGE} ps,
+                                                     ${DATA_TABLES.PRODUCT} p
+                                                WHERE i.id = td.invoice_id
+                                                  AND td.product_id = ps.product_id
+                                                  AND p.id = ps.product_id
+                                                  AND i."type" = '${INVOICE_TYPE.TRANSFERRING}'
+                                                  AND ps.position = '${position}'
+                                                  AND i.id = ${invoiceId};`;
+        return this.pool.query(transferringInvoiceDetailQuery)
             .then(({rows}) => {
                 invoiceDetail.products = rows;
                 return this.pool.query(`SELECT id as invoice_id, sale_date, total_quantity as quantity, total_money
