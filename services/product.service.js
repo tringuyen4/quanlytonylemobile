@@ -211,53 +211,75 @@ class ProductService {
     }
 
     updateProduct(productData = null) {
-        if (notEmpty(productData) && notEmpty(productData.id)) {
+        if (notEmpty(productData) && notEmpty(productData.id) && notEmpty(productData.imei)) {
             const {id, name, imei, color, status, quantity, price, position, source} = productData;
-            const promises = [];
-            const updateProductQueryStr = `UPDATE ${DATA_TABLES.PRODUCT}
-                                           SET name   = $1,
-                                               imei   = $2,
-                                               color  =$3,
-                                               status =$4
-                                           WHERE id = ${id}
-                                           RETURNING *;`;
-            promises.push(
-                this.pool.query(updateProductQueryStr, Object.values({
-                    name,
-                    imei,
-                    color,
-                    status
-                })).then(({rows}) => rows[0]).catch(e => {
-                    throw e
+            const updateProductByImeiQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
+                                    SET quantity = quantity + $1
+                                    WHERE "position" = '${position}'
+                                      AND product_id IN (SELECT id FROM ${DATA_TABLES.PRODUCT} WHERE imei = '${imei}') RETURNING *;`;
+            return this.pool.query(updateProductByImeiQuery, [quantity])
+                .then(({rows}) => {
+                    if (rows.length > 0) {
+                        const {product_id, quantity, price, position, source} = rows[0];
+                        return this.pool.query(`SELECT * FROM ${DATA_TABLES.PRODUCT} WHERE id = $1`, [product_id])
+                            .then(({rows}) => {
+                                const {id, name, imei, color, status} = rows[0];
+                                return {
+                                    id, name, imei, color, status, quantity, price, position, source
+                                }
+                            })
+                            .catch(e => {
+                                throw e
+                            })
+                    } else {
+                        const promises = [];
+                        const updateProductQueryStr = `UPDATE ${DATA_TABLES.PRODUCT}
+                                                       SET name   = $1,
+                                                           imei   = $2,
+                                                           color  =$3,
+                                                           status =$4
+                                                       WHERE id = ${id}
+                                                       RETURNING *;`;
+                        promises.push(
+                            this.pool.query(updateProductQueryStr, Object.values({
+                                name,
+                                imei,
+                                color,
+                                status
+                            })).then(({rows}) => rows[0]).catch(e => {
+                                throw e
+                            })
+                        )
+
+                        const updateProductStorageQueryStr = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
+                                                              SET quantity = $1,
+                                                                  price    = $2,
+                                                                  source   = $3
+                                                              WHERE product_id = ${id}
+                                                                AND position = '${position}'
+                                                              RETURNING *;`;
+                        promises.push(
+                            this.pool.query(updateProductStorageQueryStr, Object.values({quantity, price, source}))
+                                .then(({rows}) => rows[0])
+                                .catch(e => {
+                                    throw  e
+                                })
+                        )
+
+                        return Promise.all(promises).then(([product, productStorage]) => {
+                            const {id, name, imei, color, status} = product;
+                            const {quantity, price, position, source} = productStorage;
+                            return {
+                                id, name, imei, color, status, quantity, price, position, source
+                            }
+                        }).catch(e => {
+                            throw e
+                        })
+                    }
                 })
-            )
-
-            const updateProductStorageQueryStr = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
-                                                  SET quantity = $1,
-                                                      price    = $2,
-                                                      source   = $3
-                                                  WHERE product_id = ${id}
-                                                    AND position = '${position}'
-                                                  RETURNING *;`;
-            promises.push(
-                this.pool.query(updateProductStorageQueryStr, Object.values({quantity, price, source}))
-                    .then(({rows}) => rows[0])
-                    .catch(e => {
-                        throw  e
-                    })
-            )
-
-            return Promise.all(promises).then(([product, productStorage]) => {
-                const {id, name, imei, color, status} = product;
-                const {quantity, price, position, source} = productStorage;
-                return {
-                    id, name, imei, color, status, quantity, price, position, source
-                }
-            }).catch(e => {
-                throw e
-            })
-
-
+                .catch(e => {
+                    throw e
+                });
         } else {
             return Promise.reject({
                 error: '>>> ERROR: Can not update product. productData is empty'
