@@ -18,6 +18,7 @@ const KAI_DATA_TABLES = {
 
 const DATA_TABLES = {
     PRODUCT: 'product',
+    PRODUCT_GROUP: 'product_group',
     PRODUCT_STORAGE: 'product_storage',
     CUSTOMER: 'customer',
     INVOICE: 'invoice',

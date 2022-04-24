@@ -2562,6 +2562,101 @@ app.get(`${KAI_SERVICES.INVOICES}/completed/warehouse`, (req, res) => {
 });
 
 /**
+ * Product Group
+ */
+
+// Get all product groups
+app.get(`${KAI_SERVICES.PRODUCT_GROUP}`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    productService.getAllProductGroup()
+        .then((product_groups) => {
+            return res.status(HTTP_STATUSES.OK).json(product_groups);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get product groups. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get product groups'
+            })
+        })
+
+});
+
+// Create new product group
+app.post(`${KAI_SERVICES.PRODUCT_GROUP}`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {name} = req.body;
+
+    productService.createProductGroup(name)
+        .then((product_group) => {
+            return res.status(HTTP_STATUSES.OK).json(product_group);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not create new product group. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not create new product groups'
+            })
+        })
+
+});
+
+// Update product group data
+app.put(`${KAI_SERVICES.PRODUCT_GROUP}`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id, name, sort_order} = req.body;
+
+    productService.updateProductGroup({id, name, sort_order})
+        .then((product_group) => {
+            return res.status(HTTP_STATUSES.OK).json(product_group);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not update product group. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not update product groups'
+            })
+        })
+
+});
+
+
+// Delete product group data
+app.delete(`${KAI_SERVICES.PRODUCT_GROUP}/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+
+    productService.deleteProductGroup(id)
+        .then((product_group) => {
+            return res.status(HTTP_STATUSES.OK).json(product_group);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not delete product group. ---> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not delete product groups'
+            })
+        })
+
+});
+
+/**
  * Statistics
  */
 app.post(`${KAI_SERVICES.STATISTICS}`, (req, res) => {

@@ -88,14 +88,16 @@ class InvoicingService {
                                               FROM ${DATA_TABLES.CUSTOMER}
                                               WHERE id = $1
                                               LIMIT 1;`;
-                    const getProductsQuery = `SELECT p.*
-                                              FROM invoice i,
-                                                   invoice_detail id,
-                                                   purchasing_detail pd,
-                                                   product p
+                    const getProductsQuery = `SELECT p.*, id.quantity, id.price, ps.position, ps.source
+                                              FROM ${DATA_TABLES.INVOICE} i,
+                                                   ${DATA_TABLES.INVOICE_DETAIL} id,
+                                                   ${DATA_TABLES.PURCHASING_DETAIL} pd,
+                                                   ${DATA_TABLES.PRODUCT} p,
+                                                   ${DATA_TABLES.PRODUCT_STORAGE} ps
                                               WHERE i.id = id.invoice_id
                                                 AND i.id = pd.invoice_id
                                                 AND p.id = id.product_id
+                                                AND p.id = ps.product_id
                                                 AND i."type" = '${INVOICE_TYPE.PURCHASING}'
                                                 AND pd.invoice_id = $1;`;
                     return Promise.all([
@@ -979,8 +981,8 @@ class InvoicingService {
             listProducts.push(invoiceProduct.product);
             listProductIds.push(product.id);
             const invoiceDetailParams = {
-                quantity: purchasing_quantity,
-                price: purchasing_price
+                quantity: product.quantity,
+                price: product.price,
             }
 
             // Update anyway
