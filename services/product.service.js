@@ -214,14 +214,17 @@ class ProductService {
         if (notEmpty(productData) && notEmpty(productData.id) && notEmpty(productData.imei)) {
             const {id, name, imei, color, status, quantity, price, position, source} = productData;
             const updateProductByImeiQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
-                                    SET quantity = quantity + $1
-                                    WHERE "position" = '${position}'
-                                      AND product_id IN (SELECT id FROM ${DATA_TABLES.PRODUCT} WHERE imei = '${imei}') RETURNING *;`;
+                                              SET quantity = quantity + $1
+                                              WHERE "position" = '${position}'
+                                                AND product_id IN (SELECT id FROM ${DATA_TABLES.PRODUCT} WHERE imei = '${imei}')
+                                              RETURNING *;`;
             return this.pool.query(updateProductByImeiQuery, [quantity])
                 .then(({rows}) => {
                     if (rows.length > 0) {
                         const {product_id, quantity, price, position, source} = rows[0];
-                        return this.pool.query(`SELECT * FROM ${DATA_TABLES.PRODUCT} WHERE id = $1`, [product_id])
+                        return this.pool.query(`SELECT *
+                                                FROM ${DATA_TABLES.PRODUCT}
+                                                WHERE id = $1`, [product_id])
                             .then(({rows}) => {
                                 const {id, name, imei, color, status} = rows[0];
                                 return {
@@ -297,6 +300,66 @@ class ProductService {
             })
             .catch(e => {
                 throw e;
+            })
+    }
+
+    createProductGroup(name = null) {
+        return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_GROUP} (name)
+                                VALUES ($1)
+                                RETURNING *;`, [name])
+            .then(({rows}) => {
+                const {id, name, sort_order} = rows[0];
+                return {
+                    id,
+                    name,
+                    sort_order
+                }
+            })
+            .catch(e => {
+                throw e
+            })
+    }
+
+    updateProductGroup(productGroupData = null) {
+        const {id, name, sort_order} = productGroupData;
+        return this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT_GROUP}
+                                SET name       = $1,
+                                    sort_order = $2,
+                                    updated_at = $3
+                                WHERE id = $4
+                                RETURNING *;`, [name, sort_order, 'now()', id])
+            .then(({rows}) => {
+                const {id, name, sort_order} = rows[0];
+                return {id, name, sort_order}
+            })
+            .catch(e => {
+                throw e
+            })
+
+    }
+
+    deleteProductGroup(product_group_id = null) {
+        return this.pool.query(`DELETE
+                                FROM ${DATA_TABLES.PRODUCT_GROUP}
+                                WHERE id = $1`, [product_group_id])
+            .then(({rows}) => {
+                return {
+                    id: product_group_id
+                }
+            })
+            .catch(e => {
+                throw e
+            })
+    }
+
+    getAllProductGroup() {
+        return this.pool.query(`SELECT *
+                                FROM ${DATA_TABLES.PRODUCT_GROUP}`)
+            .then(({rows}) => {
+                return rows;
+            })
+            .catch(e => {
+                throw e
             })
     }
 
