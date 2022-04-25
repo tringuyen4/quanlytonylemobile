@@ -505,7 +505,7 @@ app.post('/deletesanphamtonkho/', function (req, res) {
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
 
-    pool.query('DELETE FROM sanphamtonkho where id=($1)', postData, function (error, results, fields) {
+    pool.query('DELETE FROM products where id=($1)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
     });
