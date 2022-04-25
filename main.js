@@ -1505,10 +1505,10 @@ app.put(`${KAI_SERVICES.PRODUCTS}`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id, imei, name, color, status, quantity, price, position, source} = req.body;
+    const {id, imei, name, color, status, quantity, price, position, source, product_group_id} = req.body;
 
     productService.updateProduct({
-        id, imei, name, color, status, quantity, price, position, source
+        id, imei, name, color, status, quantity, price, position, source, product_group_id
     })
         .then(productDetail => {
             return res.status(HTTP_STATUSES.OK).json(productDetail)

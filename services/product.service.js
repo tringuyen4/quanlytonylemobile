@@ -212,7 +212,7 @@ class ProductService {
 
     updateProduct(productData = null) {
         if (notEmpty(productData) && notEmpty(productData.id) && notEmpty(productData.imei)) {
-            const {id, name, imei, color, status, quantity, price, position, source} = productData;
+            const {id, name, imei, color, status, quantity, price, position, source, product_group_id} = productData;
             const updateProductByImeiQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
                                               SET quantity = quantity + $1
                                               WHERE "position" = '${position}'
@@ -221,14 +221,27 @@ class ProductService {
             return this.pool.query(updateProductByImeiQuery, [quantity])
                 .then(({rows}) => {
                     if (rows.length > 0) {
-                        const {product_id, quantity, price, position, source} = rows[0];
-                        return this.pool.query(`SELECT *
-                                                FROM ${DATA_TABLES.PRODUCT}
-                                                WHERE id = $1`, [product_id])
+                        // const {product_id, quantity, price, position, source} = rows[0];
+                        return this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT}
+                                                SET name             = $1,
+                                                    imei             = $2,
+                                                    color            =$3,
+                                                    status           =$4,
+                                                    product_group_id = $5
+                                                WHERE id = ${id}
+                                                RETURNING *;`,
+                            Object.values({
+                                name,
+                                imei,
+                                color,
+                                status,
+                                product_group_id
+                            })
+                        )
                             .then(({rows}) => {
-                                const {id, name, imei, color, status} = rows[0];
+                                const {id, name, imei, color, status, product_group_id} = rows[0];
                                 return {
-                                    id, name, imei, color, status, quantity, price, position, source
+                                    id, name, imei, color, status, quantity, price, position, source, product_group_id
                                 }
                             })
                             .catch(e => {
@@ -237,10 +250,11 @@ class ProductService {
                     } else {
                         const promises = [];
                         const updateProductQueryStr = `UPDATE ${DATA_TABLES.PRODUCT}
-                                                       SET name   = $1,
-                                                           imei   = $2,
-                                                           color  =$3,
-                                                           status =$4
+                                                       SET name             = $1,
+                                                           imei             = $2,
+                                                           color            =$3,
+                                                           status           =$4,
+                                                           product_group_id = $5
                                                        WHERE id = ${id}
                                                        RETURNING *;`;
                         promises.push(
@@ -248,7 +262,8 @@ class ProductService {
                                 name,
                                 imei,
                                 color,
-                                status
+                                status,
+                                product_group_id
                             })).then(({rows}) => rows[0]).catch(e => {
                                 throw e
                             })
