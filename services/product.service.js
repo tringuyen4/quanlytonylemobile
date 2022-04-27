@@ -165,15 +165,16 @@ class ProductService {
 
 
     insertProduct(productData = null) {
-        const {imei, name, color, status, quantity, price, position, source} = productData;
-        const insertProductSql = `INSERT INTO ${DATA_TABLES.PRODUCT} (imei, name, color, status)
-                                  VALUES ($1, $2, $3, $4)
+        const {imei, name, color, status, quantity, price, position, source, product_group_id} = productData;
+        const insertProductSql = `INSERT INTO ${DATA_TABLES.PRODUCT} (imei, name, color, status, product_group_id)
+                                  VALUES ($1, $2, $3, $4, $5)
                                   RETURNING *;`;
         return this.pool.query(insertProductSql, Object.values({
             imei,
             name,
             color,
-            status
+            status,
+            product_group_id
         })).then(({rows}) => {
             if (rows.length > 0) {
                 const {id, name, imei, color, status} = rows[0];
