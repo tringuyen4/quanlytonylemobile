@@ -1481,10 +1481,10 @@ app.post(`${KAI_SERVICES.PRODUCTS}`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {imei, name, color, status, quantity, price, position, source} = req.body;
+    const {imei, name, color, status, quantity, price, position, source, product_group_id} = req.body;
 
     productService.insertProduct({
-        imei, name, color, status, quantity, price, position, source
+        imei, name, color, status, quantity, price, position, source, product_group_id
     })
         .then(productDetail => {
             return res.status(HTTP_STATUSES.OK).json(productDetail)
