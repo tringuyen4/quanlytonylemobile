@@ -15,10 +15,14 @@ class ProductService {
                                ps.quantity,
                                ps.price,
                                ps."position",
-                               ps."source"
+                               ps."source",
+                               pg.id as product_group_id,
+                               pg.name as group_name
                         FROM ${DATA_TABLES.PRODUCT} p,
-                             ${DATA_TABLES.PRODUCT_STORAGE} ps
+                             ${DATA_TABLES.PRODUCT_STORAGE} ps,
+                             ${DATA_TABLES.PRODUCT_GROUP} pg
                         WHERE p.id = ps.product_id
+                          AND pg.id = p.product_group_id
                           AND ps.quantity > 0`;
         queryStr += notEmpty(position) ? ` AND position = '${position}';` : `;`;
         return this.pool.query(queryStr)
@@ -37,12 +41,16 @@ class ProductService {
                                ps.quantity,
                                ps.price,
                                ps."position",
-                               ps."source"
+                               ps."source",
+                               pg.id as product_group_id,
+                               pg.name as group_name
                         FROM ${DATA_TABLES.PRODUCT} p,
                              ${DATA_TABLES.PRODUCT_STORAGE} ps,
-                             ${DATA_TABLES.INVOICE_DETAIL} id
+                             ${DATA_TABLES.INVOICE_DETAIL} id,
+                             ${DATA_TABLES.PRODUCT_GROUP} pg
                         WHERE p.id = ps.product_id
                           AND p.id = id.product_id
+                          AND pg.id = p.product_group_id
                           AND ps.quantity > 0`;
         queryStr += notEmpty(position) ? ` AND position = '${position}';` : `;`;
         return this.pool.query(queryStr)
