@@ -15,13 +15,14 @@ const {
 } = require("./constants/data.constant");
 const {HTTP_STATUSES} = require("./constants/http.constant");
 const {notEmpty, isEmpty} = require("./utils/data.utils");
-const {INVOICE_TYPE, PRODUCT_SOURCE, INVOICE_STATUS} = require("./constants/common.constant");
+const {INVOICE_TYPE, PRODUCT_SOURCE, INVOICE_STATUS, TRANSFER_STATUS} = require("./constants/common.constant");
 const {InvoicingService} = require("./services/invoicing.service");
 const {ProductService} = require("./services/product.service");
 const {CustomerService} = require("./services/customer.service");
 const {StatisticsService} = require("./services/statistics.service");
 const {ExportService} = require("./services/export.service");
 const {ReportService} = require("./services/report.service");
+const {TransferringService} = require("./services/transferring.service");
 
 //MySQL connection
 // var connection = mysql.createConnection({
@@ -63,6 +64,7 @@ const pool = new Pool({
 /**
  * Initialize Services
  */
+const transferringService = new TransferringService(pool);
 const invoicingService = new InvoicingService(pool);
 const productService = new ProductService(pool);
 const customerService = new CustomerService(pool);
@@ -1505,10 +1507,10 @@ app.put(`${KAI_SERVICES.PRODUCTS}`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id, imei, name, color, status, quantity, price, position, source, product_group_id} = req.body;
+    const {id, imei, name, color, status, quantity, price, position, source, product_group_id, update_storage} = req.body;
 
     productService.updateProduct({
-        id, imei, name, color, status, quantity, price, position, source, product_group_id
+        id, imei, name, color, status, quantity, price, position, source, product_group_id, update_storage
     })
         .then(productDetail => {
             return res.status(HTTP_STATUSES.OK).json(productDetail)
@@ -2651,6 +2653,362 @@ app.delete(`${KAI_SERVICES.PRODUCT_GROUP}/:id`, (req, res) => {
             console.log('>>> ERROR: Can not delete product group. ---> error: ', e);
             return res.status(HTTP_STATUSES.BAD_REQUEST).json({
                 error: 'Can not delete product groups'
+            })
+        })
+
+});
+
+/**
+ * Transferring Service
+ */
+
+app.get(`${KAI_SERVICES.TRANSFERRING}/outgoing/kai`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    transferringService.getOutgoingProducts(PRODUCT_SOURCE.KAI, [TRANSFER_STATUS.PROCESSING, TRANSFER_STATUS.TRANSFERRING])
+        .then((outgoing_products) => {
+            return res.status(HTTP_STATUSES.OK).json(outgoing_products)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get KAI incoming product. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get KAI statistics.'
+            })
+        })
+
+});
+
+app.get(`${KAI_SERVICES.TRANSFERRING}/outgoing/shop-jp`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    transferringService.getOutgoingProducts(PRODUCT_SOURCE.SHOP_JP, [TRANSFER_STATUS.PROCESSING, TRANSFER_STATUS.TRANSFERRING])
+        .then((outgoing_products) => {
+            return res.status(HTTP_STATUSES.OK).json(outgoing_products)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get SHOP_JP incoming product. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get KAI statistics.'
+            })
+        })
+
+});
+
+
+app.get(`${KAI_SERVICES.TRANSFERRING}/outgoing/shop-vn`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    transferringService.getOutgoingProducts(PRODUCT_SOURCE.SHOP_VN, [TRANSFER_STATUS.PROCESSING, TRANSFER_STATUS.TRANSFERRING])
+        .then((outgoing_products) => {
+            return res.status(HTTP_STATUSES.OK).json(outgoing_products)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get Shop VN incoming product. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get KAI statistics.'
+            })
+        })
+
+});
+
+
+app.get(`${KAI_SERVICES.TRANSFERRING}/outgoing/warehouse`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    transferringService.getOutgoingProducts(PRODUCT_SOURCE.WAREHOUSE, [TRANSFER_STATUS.PROCESSING, TRANSFER_STATUS.TRANSFERRING])
+        .then((outgoing_products) => {
+            return res.status(HTTP_STATUSES.OK).json(outgoing_products)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get Shop WAREHOUSE incoming product. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get KAI statistics.'
+            })
+        })
+
+});
+
+app.get(`${KAI_SERVICES.TRANSFERRING}/shop-jp`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    transferringService.getTransferringProducts(PRODUCT_SOURCE.SHOP_JP, [TRANSFER_STATUS.TRANSFERRING])
+        .then((transferring_products) => {
+            return res.status(HTTP_STATUSES.OK).json(transferring_products)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get Shop VN incoming product. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get KAI statistics.'
+            })
+        })
+
+});
+
+app.get(`${KAI_SERVICES.TRANSFERRING}/received/shop-jp`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    transferringService.getTransferredProducts(PRODUCT_SOURCE.SHOP_JP, [TRANSFER_STATUS.TRANSFERRED])
+        .then((transferred_products) => {
+            return res.status(HTTP_STATUSES.OK).json(transferred_products)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get Shop VN incoming product. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get KAI statistics.'
+            })
+        })
+
+});
+
+app.get(`${KAI_SERVICES.TRANSFERRING}/not-found/shop-jp`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    transferringService.getNotFoundProducts(PRODUCT_SOURCE.SHOP_JP, [TRANSFER_STATUS.NOT_FOUND])
+        .then((not_found_products) => {
+            return res.status(HTTP_STATUSES.OK).json(not_found_products)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get Shop VN incoming product. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get KAI statistics.'
+            })
+        })
+
+});
+
+
+app.get(`${KAI_SERVICES.TRANSFERRING}/shop-vn`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    transferringService.getTransferringProducts(PRODUCT_SOURCE.SHOP_VN, [TRANSFER_STATUS.TRANSFERRING])
+        .then((transferring_products) => {
+            return res.status(HTTP_STATUSES.OK).json(transferring_products)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get Shop VN incoming product. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get KAI statistics.'
+            })
+        })
+
+});
+
+app.get(`${KAI_SERVICES.TRANSFERRING}/received/shop-vn`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    transferringService.getTransferredProducts(PRODUCT_SOURCE.SHOP_VN, [TRANSFER_STATUS.TRANSFERRED])
+        .then((transferred_products) => {
+            return res.status(HTTP_STATUSES.OK).json(transferred_products)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get Shop VN incoming product. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get KAI statistics.'
+            })
+        })
+
+});
+
+app.get(`${KAI_SERVICES.TRANSFERRING}/not-found/shop-vn`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    transferringService.getNotFoundProducts(PRODUCT_SOURCE.SHOP_VN, [TRANSFER_STATUS.NOT_FOUND])
+        .then((not_found_products) => {
+            return res.status(HTTP_STATUSES.OK).json(not_found_products)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get Shop VN incoming product. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get KAI statistics.'
+            })
+        })
+
+});
+
+
+app.get(`${KAI_SERVICES.TRANSFERRING}/warehouse`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    transferringService.getTransferringProducts(PRODUCT_SOURCE.WAREHOUSE, [TRANSFER_STATUS.TRANSFERRING])
+        .then((transferring_products) => {
+            return res.status(HTTP_STATUSES.OK).json(transferring_products)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get Shop VN incoming product. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get KAI statistics.'
+            })
+        })
+
+});
+
+app.get(`${KAI_SERVICES.TRANSFERRING}/received/warehouse`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    transferringService.getTransferredProducts(PRODUCT_SOURCE.WAREHOUSE, [TRANSFER_STATUS.TRANSFERRED])
+        .then((transferred_products) => {
+            return res.status(HTTP_STATUSES.OK).json(transferred_products)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get Shop VN incoming product. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get KAI statistics.'
+            })
+        })
+
+});
+
+app.get(`${KAI_SERVICES.TRANSFERRING}/not-found/warehouse`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    transferringService.getNotFoundProducts(PRODUCT_SOURCE.WAREHOUSE, [TRANSFER_STATUS.NOT_FOUND])
+        .then((not_found_products) => {
+            return res.status(HTTP_STATUSES.OK).json(not_found_products)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get Shop VN incoming product. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get KAI statistics.'
+            })
+        })
+
+});
+
+app.put(`${KAI_SERVICES.TRANSFERRING}/receive`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {invoice_id, product_id, quantity} = req.body;
+
+    transferringService.receiveTransferProduct(invoice_id, product_id, quantity)
+        .then((result) => {
+            return res.status(HTTP_STATUSES.OK).json(result)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get KAI incoming product. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get KAI statistics.'
+            })
+        })
+
+});
+
+app.get(`${KAI_SERVICES.TRANSFERRING}/:invoice_id/:product_id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {invoice_id, product_id} = req.params;
+
+    transferringService.transferProduct(invoice_id, product_id)
+        .then((result) => {
+            return res.status(HTTP_STATUSES.OK).json(result)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get KAI incoming product. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get KAI statistics.'
+            })
+        })
+
+});
+
+app.get(`${KAI_SERVICES.TRANSFERRING}/lost/:invoice_id/:product_id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {invoice_id, product_id} = req.params;
+
+    transferringService.transferProduct(invoice_id, product_id, true)
+        .then((result) => {
+            return res.status(HTTP_STATUSES.OK).json(result)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get KAI incoming product. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get KAI statistics.'
+            })
+        })
+
+});
+
+app.get(`${KAI_SERVICES.TRANSFERRING}/cancel/:invoice_id/:product_id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {invoice_id, product_id} = req.params;
+
+    transferringService.cancelTransferProduct(invoice_id, product_id)
+        .then((result) => {
+            return res.status(HTTP_STATUSES.OK).json(result)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get KAI incoming product. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get KAI statistics.'
             })
         })
 
