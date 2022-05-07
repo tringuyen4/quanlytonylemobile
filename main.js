@@ -752,7 +752,7 @@ app.post('/updatequanlythu/', function (req, res) {
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
 
-    pool.query('UPDATE quanlythu SET sotien = ($1), ngaytao = ($2), mucdich = ($3) where id = ($4)', postData, function (error, results, fields) {
+    pool.query('UPDATE quanlythu SET sotien = ($1), ngaytao = ($2), mucdich = ($3), hinhthucthanhtoan = ($4) where id = ($5)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
     });
@@ -765,7 +765,7 @@ app.post('/updatequanlychi/', function (req, res) {
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
 
-    pool.query('UPDATE quanlychi SET sotien = ($1), ngaytao = ($2), mucdich = ($3) where id = ($4)', postData, function (error, results, fields) {
+    pool.query('UPDATE quanlychi SET sotien = ($1), ngaytao = ($2), mucdich = ($3), hinhthucthanhtoan = ($4) where id = ($5)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
     });
