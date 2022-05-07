@@ -221,13 +221,24 @@ class ProductService {
 
     updateProduct(productData = null) {
         if (notEmpty(productData) && notEmpty(productData.id) && notEmpty(productData.imei)) {
-            const {id, name, imei, color, status, quantity, price, position, source, product_group_id} = productData;
-            const updateProductByImeiQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
-                                              SET quantity = quantity + $1
+            const {id, name, imei, color, status, quantity, price, position, source, product_group_id, update_storage} = productData;
+            let updateProductByImeiQuery;
+            if (notEmpty(update_storage) && update_storage) {
+            updateProductByImeiQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
+                                              SET quantity = quantity + $1,
+                                                  price = $2
                                               WHERE "position" = '${position}'
                                                 AND product_id IN (SELECT id FROM ${DATA_TABLES.PRODUCT} WHERE imei = '${imei}')
                                               RETURNING *;`;
-            return this.pool.query(updateProductByImeiQuery, [quantity])
+            } else {
+                updateProductByImeiQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
+                                              SET quantity = $1,
+                                                  price = $2
+                                              WHERE "position" = '${position}'
+                                                AND product_id IN (SELECT id FROM ${DATA_TABLES.PRODUCT} WHERE imei = '${imei}')
+                                              RETURNING *;`;
+            }
+            return this.pool.query(updateProductByImeiQuery, [quantity, price])
                 .then(({rows}) => {
                     if (rows.length > 0) {
                         // const {product_id, quantity, price, position, source} = rows[0];

@@ -129,3 +129,10 @@ ALTER TABLE product
 
 ALTER TABLE product
     ADD CONSTRAINT fk_product_group FOREIGN KEY (product_group_id) REFERENCES product_group (id);
+
+
+ALTER TABLE transfer_detail
+    ADD COLUMN transfer_date DATE NULL DEFAULT NULL;
+
+ALTER TABLE transfer_detail
+    ADD COLUMN receive_date DATE NULL DEFAULT NULL;
