@@ -1485,7 +1485,7 @@ app.post(`${KAI_SERVICES.PRODUCTS}`, (req, res) => {
 
     const {imei, name, color, status, quantity, price, position, source, product_group_id} = req.body;
 
-    productService.insertProduct({
+    productService.updateProductOrQuantity({
         imei, name, color, status, quantity, price, position, source, product_group_id
     })
         .then(productDetail => {
