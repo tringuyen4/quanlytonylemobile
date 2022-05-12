@@ -33,11 +33,11 @@ const {TransferringService} = require("./services/transferring.service");
 // });
 
 
-var connectionString =
-    'postgres://ypdfdqvewxxgly:7ac1504434e43a831ed167ce89a7e5069f7b549cced29bdaab42e50fc7b5297c@ec2-3-227-15-75.compute-1.amazonaws.com:5432/ddoocbjabks5u0'
+// var connectionString =
+//     'postgres://ypdfdqvewxxgly:7ac1504434e43a831ed167ce89a7e5069f7b549cced29bdaab42e50fc7b5297c@ec2-3-227-15-75.compute-1.amazonaws.com:5432/ddoocbjabks5u0'
 
 
-// var connectionString = 'postgres://postgres:12345678@localhost:5432/sellmobile_v2'
+var connectionString = 'postgres://postgres:12345678@localhost:5432/sellmobile_v2'
 
 
 app.use(cors());
@@ -56,9 +56,9 @@ app.use(cors());
 
 const pool = new Pool({
     connectionString,
-      ssl: {
-      rejectUnauthorized: false
-    }
+    //   ssl: {
+    //   rejectUnauthorized: false
+    // }
 })
 
 /**
