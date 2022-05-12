@@ -1,4 +1,5 @@
 const KAI_SERVICES = {
+    APP_INFO: '/app-info',
     CUSTOMERS: '/customers',
     PRODUCTS: '/products',
     REPLICATE: '/replicate',

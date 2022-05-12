@@ -15,7 +15,7 @@ const {
 } = require("./constants/data.constant");
 const {HTTP_STATUSES} = require("./constants/http.constant");
 const {notEmpty, isEmpty} = require("./utils/data.utils");
-const {INVOICE_TYPE, PRODUCT_SOURCE, INVOICE_STATUS, TRANSFER_STATUS} = require("./constants/common.constant");
+const {INVOICE_TYPE, PRODUCT_SOURCE, INVOICE_STATUS, TRANSFER_STATUS, APP_VERSION} = require("./constants/common.constant");
 const {InvoicingService} = require("./services/invoicing.service");
 const {ProductService} = require("./services/product.service");
 const {CustomerService} = require("./services/customer.service");
@@ -3056,6 +3056,17 @@ app.post(`${KAI_SERVICES.STATISTICS}`, (req, res) => {
             })
         })
 
+
+});
+
+app.get(`${KAI_SERVICES.APP_INFO}`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    return res.status(HTTP_STATUSES.OK).json({version: APP_VERSION });
 
 });
 

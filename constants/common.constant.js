@@ -1,3 +1,4 @@
+const APP_VERSION = '1.0.1';
 const AGE_PREFIX = '歳';
 const JAPANESE = {
     YEAR: '年',
@@ -63,6 +64,7 @@ const REPORT_TYPE = {
 }
 
 module.exports = {
+    APP_VERSION,
     AGE_PREFIX,
     JOB_TYPE,
     PEOPLE_JOBS,
