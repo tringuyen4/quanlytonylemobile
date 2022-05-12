@@ -1329,6 +1329,26 @@ app.get(`${KAI_SERVICES.PRODUCTS}/kai`, (req, res) => {
 
 });
 
+app.get(`${KAI_SERVICES.PRODUCTS}/on-sale/kai`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    productService.getOnSaleProducts(PRODUCT_SOURCE.KAI)
+        .then(products => {
+            return res.status(HTTP_STATUSES.OK).json(products)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not search product for KAI store. --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not search product for KAI store`
+            });
+        });
+
+});
+
 // Get All Product for KAI store
 app.get(`${KAI_SERVICES.PRODUCTS}/sold/kai`, (req, res) => {
     res.header("Access-Control-Allow-Origin", "*");
@@ -1485,7 +1505,7 @@ app.post(`${KAI_SERVICES.PRODUCTS}`, (req, res) => {
 
     const {imei, name, color, status, quantity, price, position, source, product_group_id} = req.body;
 
-    productService.updateProductOrQuantity({
+    productService.insertProduct({
         imei, name, color, status, quantity, price, position, source, product_group_id
     })
         .then(productDetail => {
@@ -1978,8 +1998,8 @@ app.post(`${KAI_SERVICES.TRANSFERRING_INVOICES}`, (req, res) => {
     res.header('content-type', 'application/json');
 
     const transferData = req.body;
-    invoicingService.transferInvoice(transferData).then(r => {
-        return res.status(HTTP_STATUSES.CREATED).json(null);
+    invoicingService.transferInvoice(transferData).then(result => {
+        return res.status(HTTP_STATUSES.CREATED).json(result);
     })
         .catch(e => {
             console.log('>>> ERROR: Can not create transfer invoice --> error: ', e);
