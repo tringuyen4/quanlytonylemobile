@@ -356,32 +356,32 @@ class InvoicingService {
                                        AND position = '${from_position}' RETURNING *;`)
                     )
 
-                    promises.push(
-                        this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
-                                     SET quantity = quantity + ${quantity}
-                                     WHERE product_id = ${product_id}
-                                       AND position = '${to_position}' RETURNING *;`)
-                            .then(({rows}) => {
-                                if (rows.length === 0) {
-                                    return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
-                                            VALUES ($1, $2, $3, $4,
-                                                    $5) RETURNING *;`, [product_id, quantity, price, to_position, from_position])
-                                        .then(({rows}) => {
-                                            const {quantity, price, position, source} = rows[0];
-                                            return {
-                                                product_id,
-                                                quantity,
-                                                price,
-                                                position,
-                                                source
-                                            }
-                                        });
-                                }
-                            })
-                            .catch(e => {
-                                throw e
-                            })
-                    )
+                    // promises.push(
+                    //     this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
+                    //                  SET quantity = quantity + ${quantity}
+                    //                  WHERE product_id = ${product_id}
+                    //                    AND position = '${to_position}' RETURNING *;`)
+                    //         .then(({rows}) => {
+                    //             if (rows.length === 0) {
+                    //                 return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
+                    //                         VALUES ($1, $2, $3, $4,
+                    //                                 $5) RETURNING *;`, [product_id, quantity, price, to_position, from_position])
+                    //                     .then(({rows}) => {
+                    //                         const {quantity, price, position, source} = rows[0];
+                    //                         return {
+                    //                             product_id,
+                    //                             quantity,
+                    //                             price,
+                    //                             position,
+                    //                             source
+                    //                         }
+                    //                     });
+                    //             }
+                    //         })
+                    //         .catch(e => {
+                    //             throw e
+                    //         })
+                    // )
                 })
                 return Promise.all(promises).then(r => {
                     return {
