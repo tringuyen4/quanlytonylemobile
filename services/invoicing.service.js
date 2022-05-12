@@ -784,14 +784,13 @@ class InvoicingService {
                         price: productItem.price
                     }))
                 )
-
+                const position = notEmpty(productItem.position) ? productItem.position : PRODUCT_SOURCE.KAI;
                 const updateProductQuantityQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
-                                                    SET quantity = quantity - ${productItem.quantity},
-                                                        price    = ${productItem.price}
+                                                    SET quantity = quantity - ${productItem.quantity}
                                                     WHERE product_id = ${productItem.id}
-                                                      AND position = '${PRODUCT_SOURCE.KAI}';`;
+                                                      AND position = $1;`;
                 promises.push(
-                    this.pool.query(updateProductQuantityQuery)
+                    this.pool.query(updateProductQuantityQuery, [position])
                 )
             });
 
