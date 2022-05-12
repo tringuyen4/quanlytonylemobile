@@ -61,6 +61,33 @@ class ProductService {
             });
     }
 
+    getOnSaleProducts(position = null) {
+        const onSaleProductQuery = `SELECT storage_data.*, purchasing_data.*
+                                    FROM (SELECT id.product_id, i.sale_date, id.invoice_id
+                                          FROM invoice i,
+                                               invoice_detail id
+                                          WHERE i.id = id.invoice_id
+                                            AND i."type" = 'PURCHASING'
+                                          GROUP BY id.product_id, i.sale_date, id.invoice_id) product_data,
+                                         (SELECT c.name_vietnamese, c.name_japanese, pd.invoice_id
+                                          FROM purchasing_detail pd,
+                                               customer c
+                                          WHERE pd.customer_id = c.id) purchasing_data,
+                                         (SELECT p.id, p.name, p.imei, p.status, ps.price, ps.quantity, ps."position"
+                                          FROM product p,
+                                               product_storage ps
+                                          WHERE p.id = ps.product_id
+                                            AND ps.quantity >= 0
+                                            AND ps."position" = $1) storage_data
+                                    WHERE product_data.invoice_id = purchasing_data.invoice_id
+                                      AND storage_data.id = product_data.product_id;`;
+        return this.pool.query(onSaleProductQuery, [position])
+            .then(({rows}) => rows)
+            .catch(e => {
+                throw e
+            })
+    }
+
     addOrUpdateProduct(productData = null) {
         // Check that any product with the imei exists
         const {imei, name, color, status, quantity, price, position, source} = productData;
@@ -266,44 +293,90 @@ class ProductService {
             position,
             source,
         }
-        const insertProductSql = `INSERT INTO ${DATA_TABLES.PRODUCT} (imei, name, color, status, product_group_id)
+        return this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
+                                SET quantity = quantity + $1
+                                WHERE product_id IN (SELECT id FROM ${DATA_TABLES.PRODUCT} WHERE imei = $2)
+                                  AND position = $3 RETURNING *;`, [quantity, imei, position])
+            .then(({rows}) => {
+                if (rows.length > 0) {
+                    const {product_id, quantity} = rows[0];
+                    productDetail.id = product_id;
+                    productDetail.quantity = quantity;
+                    return productDetail;
+                } else {
+
+                    return this.pool.query(`SELECT id FROM ${DATA_TABLES.PRODUCT} WHERE imei = $1`, [imei])
+                        .then(({rows}) => {
+                            if (rows.length > 0) {
+                                const {id} = rows[0];
+                                return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
+                                        VALUES ($1, $2, $3, $4, $5) RETURNING *;`,
+                                    Object.values({
+                                        product_id: id,
+                                        quantity: quantity,
+                                        price: price,
+                                        position: position,
+                                        source: source
+                                    }))
+                                    .then(({rows}) => {
+                                        if (rows.length > 0) {
+                                            const {product_id, quantity} = rows[0];
+                                            productDetail.id = product_id;
+                                            productDetail.quantity = quantity;
+                                        }
+                                        return productDetail;
+                                    })
+                                    .catch(e => {
+                                        throw e
+                                    })
+                            } else {
+                                const insertProductSql = `INSERT INTO ${DATA_TABLES.PRODUCT} (imei, name, color, status, product_group_id)
                                   VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
-        return this.pool.query(insertProductSql, Object.values({
-            imei,
-            name,
-            color,
-            status,
-            product_group_id
-        })).then(({rows}) => {
-            if (rows.length > 0) {
-                const {id, name, imei, color, status} = rows[0];
-                productDetail.id = id;
-                return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
-                                        VALUES ($1, $2, $3, $4, $5)
-                                        RETURNING *;`,
-                    Object.values({
-                        product_id: id,
-                        quantity: quantity,
-                        price: price,
-                        position: position,
-                        source: source
-                    }))
-                    .then(({rows}) => {
-                        if (rows.length > 0) {
-                            const {quantity} = rows[0];
-                            productDetail.quantity = quantity;
-                        }
-                        return productDetail;
-                    })
-                    .catch(e => {
-                        throw e
-                    })
-            } else {
-                return null;
-            }
-        }).catch(e => {
-            throw e
-        });
+                                return this.pool.query(insertProductSql, Object.values({
+                                    imei,
+                                    name,
+                                    color,
+                                    status,
+                                    product_group_id
+                                })).then(({rows}) => {
+                                    if (rows.length > 0) {
+                                        const {id, name, imei, color, status} = rows[0];
+                                        productDetail.id = id;
+                                        return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
+                                        VALUES ($1, $2, $3, $4, $5) RETURNING *;`,
+                                            Object.values({
+                                                product_id: id,
+                                                quantity: quantity,
+                                                price: price,
+                                                position: position,
+                                                source: source
+                                            }))
+                                            .then(({rows}) => {
+                                                if (rows.length > 0) {
+                                                    const {quantity} = rows[0];
+                                                    productDetail.quantity = quantity;
+                                                }
+                                                return productDetail;
+                                            })
+                                            .catch(e => {
+                                                throw e
+                                            })
+                                    } else {
+                                        return null;
+                                    }
+                                }).catch(e => {
+                                    throw e
+                                });
+                            }
+                        })
+                        .catch(e => {
+                            throw e
+                        })
+                }
+            })
+            .catch(e => {
+                throw e
+            })
     }
 
     updateProduct(productData = null) {
