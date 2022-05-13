@@ -148,6 +148,31 @@ class TransferringService {
             })
     }
 
+    transferProducts(productData = []) {
+        if (notEmpty(productData)) {
+            console.log('>>> productData: ', productData);
+            const promises = [];
+            productData.forEach((item) => {
+                promises.push(
+                    this.pool.query(`UPDATE ${DATA_TABLES.TRANSFER_DETAIL}
+                                SET transfer_status = $1,
+                                    transfer_date   = $2
+                                WHERE invoice_id = $3
+                                  AND product_id = $4`, [TRANSFER_STATUS.TRANSFERRING, 'now()', item.invoice_id, item.product_id])
+                )
+            })
+            return Promise.all(promises)
+                .then((r) => {
+                    return true;
+                })
+                .catch(e => {
+                    throw e
+                })
+        } else {
+            return Promise.resolve(false);
+        }
+    }
+
     transferProduct(invoiceId = null, productId = null, isLost = false) {
         const transfer_status = notEmpty(isLost) && isLost ? TRANSFER_STATUS.NOT_FOUND : TRANSFER_STATUS.TRANSFERRING;
         return this.pool.query(`UPDATE ${DATA_TABLES.TRANSFER_DETAIL}
