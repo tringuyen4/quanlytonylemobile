@@ -171,7 +171,7 @@ class TransferringService {
                                   AND transfer_status IN (${[TRANSFER_STATUS.TRANSFERRING, TRANSFER_STATUS.NOT_FOUND].map(x => `'${x}'`).join(',')})`, [invoiceId, productId])
             .then(({rows}) => {
                 if (rows.length > 0) {
-                    const {quantity, from_position, to_position, price} = rows[0];
+                    const {quantity, from_position, to_position, price, transfer_price} = rows[0];
                     let updateTransferDetailQuery = '';
                     let updateTransferDetailQueryParams = null;
                     if (transferQuantity < quantity && notEmpty(transferQuantity)) {
@@ -204,15 +204,16 @@ class TransferringService {
 
                     return Promise.all([
                         this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
-                                         SET quantity = quantity + $1
+                                         SET quantity = quantity + $1,
+                                             price = $4
                                          WHERE product_id = $2
-                                           AND position = $3 RETURNING *;`, [transferQuantity, productId, to_position])
+                                           AND position = $3 RETURNING *;`, [transferQuantity, productId, to_position, transfer_price])
                             .then(({rows}) => {
                                 if (rows.length === 0) {
                                     // In-case can not update we will insert new one
                                     return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
                                                             VALUES ($1, $2, $3, $4,
-                                                                    $5) RETURNING *`, [productId, transferQuantity, price, to_position, from_position])
+                                                                    $5) RETURNING *`, [productId, transferQuantity, transfer_price, to_position, from_position])
                                         .then(({rows}) => rows[0])
                                         .catch(e => {
                                             throw e
