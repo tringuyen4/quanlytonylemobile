@@ -2946,6 +2946,26 @@ app.get(`${KAI_SERVICES.TRANSFERRING}/not-found/warehouse`, (req, res) => {
 
 });
 
+app.post(`${KAI_SERVICES.TRANSFERRING}/transfer`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    transferringService.transferProducts(req.body)
+        .then((result) => {
+            return res.status(HTTP_STATUSES.OK).json(result)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not transfer multi product. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not transfer multi product.'
+            })
+        })
+
+});
+
 app.put(`${KAI_SERVICES.TRANSFERRING}/receive`, (req, res) => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
