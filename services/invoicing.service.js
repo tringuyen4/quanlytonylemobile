@@ -931,10 +931,11 @@ class InvoicingService {
                 name: product.name,
                 imei: product.imei,
                 color: product.color,
-                status: product.status
+                status: product.status,
+                product_group_id: product.product_group_id
             }
-            let productQuery = `INSERT INTO ${DATA_TABLES.PRODUCT} (name, imei, color, status)
-                                VALUES ($1, $2, $3, $4) RETURNING *;`;
+            let productQuery = `INSERT INTO ${DATA_TABLES.PRODUCT} (name, imei, color, status, product_group_id)
+                                VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
             if (rows.length > 0) {
 
                 // Exists quantity
@@ -943,7 +944,8 @@ class InvoicingService {
                                 SET name   = $1,
                                     imei   = $2,
                                     color  = $3,
-                                    status = $4
+                                    status = $4,
+                                    product_group_id = $5
                                 WHERE id = ${id} RETURNING *;`;
             }
 

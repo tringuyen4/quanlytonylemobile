@@ -33,6 +33,33 @@ class ProductService {
             });
     }
 
+    getProductByIds(productIds = [], position = null) {
+        let queryStr = `SELECT p.id,
+                               p."name",
+                               p.imei,
+                               p.color,
+                               p.status,
+                               ps.quantity,
+                               ps.price,
+                               ps."position",
+                               ps."source",
+                               pg.id   as product_group_id,
+                               pg.name as group_name
+                        FROM ${DATA_TABLES.PRODUCT} p,
+                             ${DATA_TABLES.PRODUCT_STORAGE} ps,
+                             ${DATA_TABLES.PRODUCT_GROUP} pg
+                        WHERE p.id = ps.product_id
+                          AND pg.id = p.product_group_id
+                          AND p.id IN (${productIds.map(x => `'${x}'`).join(',')})
+                          AND ps.quantity > 0`;
+        queryStr += notEmpty(position) ? ` AND position = '${position}';` : `;`;
+        return this.pool.query(queryStr)
+            .then(({rows}) => rows)
+            .catch(e => {
+                throw e;
+            });
+    }
+
     getSoldProducts(position = null) {
         let queryStr = `SELECT p.id,
                                p."name",
@@ -73,10 +100,12 @@ class ProductService {
                                           FROM purchasing_detail pd,
                                                customer c
                                           WHERE pd.customer_id = c.id) purchasing_data,
-                                         (SELECT p.id, p.name, p.imei, p.status, ps.price, ps.quantity, ps."position"
+                                         (SELECT p.id, p.name, p.imei, p.color, p.status, ps.price, ps.quantity, ps."position", pg.name as group_name 
                                           FROM product p,
-                                               product_storage ps
+                                               product_storage ps,
+                                               product_group pg
                                           WHERE p.id = ps.product_id
+                                            AND p.product_group_id = pg.id
                                             AND ps.quantity >= 0
                                             AND ps."position" = $1) storage_data
                                     WHERE product_data.invoice_id = purchasing_data.invoice_id
@@ -305,12 +334,14 @@ class ProductService {
                     return productDetail;
                 } else {
 
-                    return this.pool.query(`SELECT id FROM ${DATA_TABLES.PRODUCT} WHERE imei = $1`, [imei])
+                    return this.pool.query(`SELECT id
+                                            FROM ${DATA_TABLES.PRODUCT}
+                                            WHERE imei = $1`, [imei])
                         .then(({rows}) => {
                             if (rows.length > 0) {
                                 const {id} = rows[0];
                                 return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
-                                        VALUES ($1, $2, $3, $4, $5) RETURNING *;`,
+                                                        VALUES ($1, $2, $3, $4, $5) RETURNING *;`,
                                     Object.values({
                                         product_id: id,
                                         quantity: quantity,
@@ -331,7 +362,7 @@ class ProductService {
                                     })
                             } else {
                                 const insertProductSql = `INSERT INTO ${DATA_TABLES.PRODUCT} (imei, name, color, status, product_group_id)
-                                  VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
+                                                          VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
                                 return this.pool.query(insertProductSql, Object.values({
                                     imei,
                                     name,
@@ -343,7 +374,7 @@ class ProductService {
                                         const {id, name, imei, color, status} = rows[0];
                                         productDetail.id = id;
                                         return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
-                                        VALUES ($1, $2, $3, $4, $5) RETURNING *;`,
+                                                                VALUES ($1, $2, $3, $4, $5) RETURNING *;`,
                                             Object.values({
                                                 product_id: id,
                                                 quantity: quantity,

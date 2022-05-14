@@ -32,6 +32,9 @@ const {TransferringService} = require("./services/transferring.service");
 //     database: 'network'`1a
 // });
 
+//
+// var connectionString =
+//     'postgres://ypdfdqvewxxgly:7ac1504434e43a831ed167ce89a7e5069f7b549cced29bdaab42e50fc7b5297c@ec2-3-227-15-75.compute-1.amazonaws.com:5432/ddoocbjabks5u0'
 
 var connectionString =
     'postgres://ypdfdqvewxxgly:7ac1504434e43a831ed167ce89a7e5069f7b549cced29bdaab42e50fc7b5297c@ec2-3-227-15-75.compute-1.amazonaws.com:5432/ddoocbjabks5u0'
@@ -1517,6 +1520,28 @@ app.post(`${KAI_SERVICES.PRODUCTS}`, (req, res) => {
                 error: `Can not insert product for`
             });
         });
+});
+
+app.post(`${KAI_SERVICES.PRODUCTS}/search`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {ids, position} = req.body;
+    productService.getProductByIds(ids, position)
+        .then(listProducts => {
+            return res.status(HTTP_STATUSES.OK).json(listProducts)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not get product by Id --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not get product by Id`
+            });
+        });
+
+
 });
 
 // Get all product for shop JP
