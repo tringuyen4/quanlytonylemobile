@@ -570,17 +570,31 @@ class ProductService {
     }
 
     deleteProductGroup(product_group_id = null) {
-        return this.pool.query(`DELETE
+        return this.pool.query(`SELECT COUNT(*) FROM ${DATA_TABLES.PRODUCT} p WHERE p.product_group_id = $1`, [product_group_id])
+            .then(({rows}) => {
+                const {count} = rows[0];
+                if (count > 0) {
+                    return Promise.resolve(null);
+                } else {
+                    return this.pool.query(`DELETE
                                 FROM ${DATA_TABLES.PRODUCT_GROUP}
                                 WHERE id = $1`, [product_group_id])
-            .then(({rows}) => {
-                return {
-                    id: product_group_id
+                        .then(({rows}) => {
+                            return {
+                                id: product_group_id,
+                                count
+                            }
+                        })
+                        .catch(e => {
+                            throw e
+                        })
                 }
+
             })
             .catch(e => {
                 throw e
             })
+
     }
 
     getAllProductGroup() {
