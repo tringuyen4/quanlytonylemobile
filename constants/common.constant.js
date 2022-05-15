@@ -14,7 +14,9 @@ const JOB_TYPE = {
 
 const DEVICE_STATUS = {
     NEW: 'NEW',
-    USED: 'USED'
+    LIKE_NEW: 'LIKE_NEW',
+    LIKE_NEW_TBH: 'LIKE_NEW_TBH',
+    SECOND_HAND: 'SECOND_HAND',
 }
 
 const PEOPLE_JOBS = [
@@ -25,8 +27,10 @@ const PEOPLE_JOBS = [
 ]
 
 const MOBILE_STATUSES = [
-    {label: '新品', value: DEVICE_STATUS.NEW},
-    {label: '中古', value: DEVICE_STATUS.USED}
+    {label: 'New', value: DEVICE_STATUS.NEW},
+    {label: 'Like New', value: DEVICE_STATUS.LIKE_NEW},
+    {label: 'Like New TBH', value: DEVICE_STATUS.LIKE_NEW_TBH},
+    {label: 'Second Hand', value: DEVICE_STATUS.SECOND_HAND},
 ]
 
 const INVOICE_TYPE = {

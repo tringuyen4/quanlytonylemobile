@@ -955,7 +955,7 @@ class InvoicingService {
                                         SET quantity = quantity + $1,
                                             price    = $2
                                         WHERE product_id = $3
-                                          AND position = $4 RETURNING *;`, [product.quantity, product.price, id, product.position])
+                                          AND position = $4 RETURNING *;`, [product.quantity, +product.price, id, product.position])
                     .then(({rows}) => {
                         if (rows.length > 0) {
                             const {product_id, quantity, price} = rows[0];
@@ -968,7 +968,7 @@ class InvoicingService {
                         } else {
                             return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
                                                     VALUES ($1, $2, $3, $4,
-                                                            $5) RETURNING *;`, [id, product.quantity, product.price, product.position, product.source])
+                                                            $5) RETURNING *;`, [id, product.quantity, +product.price, product.position, product.source])
                                 .then(({rows}) => {
                                     const {product_id, quantity, price} = rows[0];
                                     product.id = product_id;
