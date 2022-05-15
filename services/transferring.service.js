@@ -14,7 +14,7 @@ class TransferringService {
                                                p.color,
                                                p.status,
                                                td.quantity,
-                                               td.price,
+                                               td.transfer_price as price,
                                                ip.imei,
                                                ip.transfer_status,
                                                ip.to_position,
@@ -39,7 +39,8 @@ class TransferringService {
                                         WHERE p.imei = ip.imei
                                           AND td.invoice_id = ip.invoice_id
                                           AND td.product_id = p.id
-                                          AND p.product_group_id = pg.id;`;
+                                          AND p.product_group_id = pg.id
+                                        ORDER BY ip.transfer_date ASC;`;
         return this.pool.query(getIncomingProductsQuery, [source])
             .then(({rows}) => {
                 return rows;
@@ -57,7 +58,7 @@ class TransferringService {
                                                    p.color,
                                                    p.status,
                                                    td.quantity,
-                                                   td.price,
+                                                   td.transfer_price as price,
                                                    ip.imei,
                                                    ip.transfer_status,
                                                    ip.from_position,
@@ -83,7 +84,8 @@ class TransferringService {
                                             WHERE p.imei = ip.imei
                                               AND td.invoice_id = ip.invoice_id
                                               AND td.product_id = p.id
-                                              AND p.product_group_id = pg.id;`;
+                                              AND p.product_group_id = pg.id
+                                            ORDER BY ip.transfer_date ASC;`;
         return this.pool.query(getTransferringProductsQuery, [source])
             .then(({rows}) => rows)
             .catch(e => {
@@ -98,7 +100,7 @@ class TransferringService {
                                                    p.color,
                                                    p.status,
                                                    td.quantity,
-                                                   td.price,
+                                                   td.transfer_price as price,
                                                    ip.imei,
                                                    ip.transfer_status,
                                                    ip.from_position,
@@ -127,7 +129,8 @@ class TransferringService {
                                             WHERE p.imei = ip.imei
                                               AND td.invoice_id = ip.invoice_id
                                               AND td.product_id = p.id
-                                              AND p.product_group_id = pg.id;`;
+                                              AND p.product_group_id = pg.id
+                                            ORDER BY ip.transfer_date ASC;`;
 
         return this.pool.query(getTransferringProductsQuery, [source])
             .then(({rows}) => rows)
@@ -143,7 +146,7 @@ class TransferringService {
                                                    p.color,
                                                    p.status,
                                                    td.quantity,
-                                                   td.price,
+                                                   td.transfer_price as price,
                                                    ip.imei,
                                                    ip.transfer_status,
                                                    ip.from_position,
@@ -169,7 +172,8 @@ class TransferringService {
                                             WHERE p.imei = ip.imei
                                               AND td.invoice_id = ip.invoice_id
                                               AND td.product_id = p.id
-                                              AND p.product_group_id = pg.id;`;
+                                              AND p.product_group_id = pg.id
+                                            ORDER BY ip.transfer_date ASC;`;
 
         return this.pool.query(getTransferringProductsQuery, [source])
             .then(({rows}) => rows)
