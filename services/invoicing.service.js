@@ -323,7 +323,7 @@ class InvoicingService {
                     // Calculate the total_money if transfer from other position to vn storage\
                     let transfer_price = price;
                     if (from_position !== to_position && to_position === PRODUCT_SOURCE.SHOP_VN) {
-                        transfer_price = (transfer_price * exchange_rate) + sub_fee;
+                        transfer_price = (+transfer_price * +exchange_rate) + +sub_fee;
                     }
                     promises.push(
                         this.pool.query(`INSERT INTO ${DATA_TABLES.TRANSFER_DETAIL} (invoice_id, product_id,
