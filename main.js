@@ -789,6 +789,20 @@ app.post('/updatesoluongsanphamhuy/', function (req, res) {
     });
 });
 
+
+app.post('/getsoluongsanphamhientaidangco/', function (req, res) {
+    var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+
+    pool.query('select quantity from product_storage where product_id = ($1) and position = ($2)', postData, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
+
 app.post('/deletedanhsachdonhangsaukhihuy/', function (req, res) {
     var postData = req.body;
     res.header("Access-Control-Allow-Origin", "*");
