@@ -54,11 +54,11 @@ class ReplicateService {
 
         // Replicate base data: products and customers then for related data: invoice, invoice_detail, purchase_detail
         return Promise.all([
-            this._replicateProducts(),
+            // this._replicateProducts(),
             this._replicateCustomers(),
         ]).then(r => {
             console.log('>>> Finished replicate product and customer data...!');
-            return this._replicateInvoiceData();
+            // return this._replicateInvoiceData();
         }).finally(() => {
             console.log('>>> Finished replicate KAI...!!!');
         })
