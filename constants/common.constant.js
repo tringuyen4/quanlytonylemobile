@@ -16,7 +16,10 @@ const DEVICE_STATUS = {
     NEW: 'NEW',
     LIKE_NEW: 'LIKE_NEW',
     LIKE_NEW_TBH: 'LIKE_NEW_TBH',
-    SECOND_HAND: 'SECOND_HAND',
+    SECOND_HAND_A: 'SECOND_HAND_A',
+    SECOND_HAND_B: 'SECOND_HAND_B',
+    SECOND_HAND_C: 'SECOND_HAND_C',
+    SECOND_HAND_D: 'SECOND_HAND_D',
 }
 
 const PEOPLE_JOBS = [
@@ -30,7 +33,10 @@ const MOBILE_STATUSES = [
     {label: 'New', value: DEVICE_STATUS.NEW},
     {label: 'Like New', value: DEVICE_STATUS.LIKE_NEW},
     {label: 'Like New TBH', value: DEVICE_STATUS.LIKE_NEW_TBH},
-    {label: 'Second Hand', value: DEVICE_STATUS.SECOND_HAND},
+    {label: 'Second-A', value: DEVICE_STATUS.SECOND_HAND_A},
+    {label: 'Second-B', value: DEVICE_STATUS.SECOND_HAND_A},
+    {label: 'Second-C', value: DEVICE_STATUS.SECOND_HAND_A},
+    {label: 'Second-D', value: DEVICE_STATUS.SECOND_HAND_A},
 ]
 
 const INVOICE_TYPE = {

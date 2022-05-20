@@ -93,14 +93,17 @@ class InvoicingService {
                                                    ${DATA_TABLES.PRODUCT} p,
                                                    ${DATA_TABLES.PRODUCT_STORAGE} ps
                                               WHERE i.id = id.invoice_id
-                                                AND i.id = pd.invoice_id
                                                 AND p.id = id.product_id
                                                 AND p.id = ps.product_id
+                                                AND i.id = pd.invoice_id
                                                 AND i."type" = '${INVOICE_TYPE.PURCHASING}'
-                                                AND pd.invoice_id = $1;`;
+                                                AND ps."position" = '${PRODUCT_SOURCE.KAI}'
+                                                AND i.id = $1
+                                                AND pd.customer_id = $2
+                                              ORDER BY id.product_id ASC;`;
                     return Promise.all([
                         this.pool.query(getCustomerQuery, [invoice.customer_id]),
-                        this.pool.query(getProductsQuery, [invoiceId]),
+                        this.pool.query(getProductsQuery, [invoiceId, invoice.customer_id]),
                     ])
                         .then(([customerResult, productsResult]) => {
                             return {
@@ -351,9 +354,9 @@ class InvoicingService {
 
                     promises.push(
                         this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
-                                     SET quantity = quantity - ${quantity}
-                                     WHERE product_id = ${product_id}
-                                       AND position = '${from_position}' RETURNING *;`)
+                                         SET quantity = quantity - ${quantity}
+                                         WHERE product_id = ${product_id}
+                                           AND position = '${from_position}' RETURNING *;`)
                     )
 
                     // promises.push(
@@ -866,7 +869,9 @@ class InvoicingService {
             const promises = [];
 
             listProducts.forEach((product) => {
-                promises.push(this._saveProduct(product))
+                if (product.id !== -1) {
+                    promises.push(this._saveProduct(product))
+                }
             })
 
             // Handle for customer
@@ -909,7 +914,25 @@ class InvoicingService {
                     } else {
                         purchasingInvoice.products = [];
                     }
-                    return purchasingInvoice;
+
+                    // Remove products
+                    const productIds = purchasingInvoice.products.map(r => r.product.id);
+
+                    const promises = [];
+                    promises.push(
+                        this.pool.query(`DELETE
+                                         FROM ${DATA_TABLES.INVOICE_DETAIL}
+                                         WHERE invoice_id = $1
+                                           AND product_id NOT IN (${productIds.join(',')})`, [purchasingInvoice.invoice_id])
+                    )
+
+                    return Promise.all(promises).then((r) => {
+                        return purchasingInvoice;
+                    })
+                        .catch(e => {
+                            throw e;
+                        })
+
                 })
                 .catch(e => {
                     throw e;
@@ -934,6 +957,7 @@ class InvoicingService {
                 status: product.status,
                 product_group_id: product.product_group_id
             }
+            let isNewProduct = true;
             let productQuery = `INSERT INTO ${DATA_TABLES.PRODUCT} (name, imei, color, status, product_group_id)
                                 VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
             if (rows.length > 0) {
@@ -941,21 +965,30 @@ class InvoicingService {
                 // Exists quantity
                 const {id} = rows[0];
                 productQuery = `UPDATE ${DATA_TABLES.PRODUCT}
-                                SET name   = $1,
-                                    imei   = $2,
-                                    color  = $3,
-                                    status = $4,
+                                SET name             = $1,
+                                    imei             = $2,
+                                    color            = $3,
+                                    status           = $4,
                                     product_group_id = $5
                                 WHERE id = ${id} RETURNING *;`;
+                isNewProduct = false;
             }
 
             return this.pool.query(productQuery, Object.values(productParams)).then(({rows}) => {
                 const {id} = rows[0];
-                return this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
-                                        SET quantity = quantity + $1,
-                                            price    = $2
-                                        WHERE product_id = $3
-                                          AND position = $4 RETURNING *;`, [product.quantity, +product.price, id, product.position])
+                let updateProductStorageQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
+                                                 SET quantity = $1,
+                                                     price    = $2
+                                                 WHERE product_id = $3
+                                                   AND position = $4 RETURNING *;`
+                if (isNewProduct) {
+                    updateProductStorageQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
+                                                 SET quantity = quantity + $1,
+                                                     price    = $2
+                                                 WHERE product_id = $3
+                                                   AND position = $4 RETURNING *;`
+                }
+                return this.pool.query(updateProductStorageQuery, [product.quantity, +product.price, id, product.position])
                     .then(({rows}) => {
                         if (rows.length > 0) {
                             const {product_id, quantity, price} = rows[0];
@@ -1046,14 +1079,28 @@ class InvoicingService {
         );
 
         promises.push(
-            this.pool.query(`INSERT INTO ${DATA_TABLES.PURCHASING_DETAIL}
-                             SELECT $1,
-                                    $2 WHERE NOT EXISTS(
+            this.pool.query(`SELECT *
+                             FROM ${DATA_TABLES.PURCHASING_DETAIL}
+                             WHERE invoice_id = $1;`, [invoice_id])
+                .then(({rows}) => {
+                    if (rows.length === 0) {
+                        return this.pool.query(`INSERT INTO ${DATA_TABLES.PURCHASING_DETAIL}
+                                                SELECT $1,
+                                                       $2 WHERE NOT EXISTS(
                                      SELECT invoice_id, customer_id
                                      FROM ${DATA_TABLES.PURCHASING_DETAIL} WHERE invoice_id = $1 AND customer_id = $2 );`, Object.values({
-                invoice_id,
-                customer_id: purchasingInvoice.customer.id
-            }))
+                            invoice_id,
+                            customer_id: purchasingInvoice.customer.id
+                        }))
+                    } else {
+                        return this.pool.query(`UPDATE ${DATA_TABLES.PURCHASING_DETAIL}
+                                                SET customer_id = $1
+                                                WHERE invoice_id = $2`, [purchasingInvoice.customer.id, invoice_id])
+                    }
+                })
+                .catch(e => {
+                    throw e
+                })
         );
 
         return Promise.all(promises).then(r => {
