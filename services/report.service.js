@@ -99,7 +99,8 @@ class ReportService {
                                         WHERE i.id = id.invoice_id
                                           AND i.id = pd.invoice_id
                                           AND p.id = id.product_id
-                                          AND pd.invoice_id = $1;`;
+                                          AND pd.invoice_id = $1
+                                        ORDER BY p.id ASC;`;
         return this.pool.query(invoiceReportDataQuery, [invoiceId])
             .then(({rows}) => rows)
             .catch(e => {
