@@ -136,3 +136,10 @@ ALTER TABLE transfer_detail
 
 ALTER TABLE transfer_detail
     ADD COLUMN receive_date DATE NULL DEFAULT NULL;
+
+
+ALTER TABLE product
+    ADD COLUMN estimated_price DECIMAL NOT NULL DEFAULT 0;
+
+ALTER TABLE product
+    ADD COLUMN display_order INT NOT NULL DEFAULT 0;
