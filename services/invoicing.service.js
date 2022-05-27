@@ -321,13 +321,17 @@ class InvoicingService {
                 const promises = [];
                 products.forEach((transferProduct) => {
                     const {quantity, price} = transferProduct;
+                    const estimated_price = notEmpty(transferProduct.estimated_price) ? transferProduct.estimated_price : 0;
                     const product_id = transferProduct.id;
                     console.log(`>>>> TRANSFER PRODUCT: ID: ${product_id}, From: ${from_position}, TO: ${to_position}, quantity: ${quantity}, price: ${price}`);
                     // Calculate the total_money if transfer from other position to vn storage\
                     let transfer_price = price;
+                    let transfer_estimated_price = estimated_price;
                     if (from_position !== to_position && to_position === PRODUCT_SOURCE.SHOP_VN) {
                         transfer_price = (+transfer_price * +exchange_rate) + +sub_fee;
+                        transfer_estimated_price = (+estimated_price * +exchange_rate) + +sub_fee;
                     }
+
                     promises.push(
                         this.pool.query(`INSERT INTO ${DATA_TABLES.TRANSFER_DETAIL} (invoice_id, product_id,
                                                                                      from_position,
@@ -357,6 +361,12 @@ class InvoicingService {
                                          SET quantity = quantity - ${quantity}
                                          WHERE product_id = ${product_id}
                                            AND position = '${from_position}' RETURNING *;`)
+                    )
+
+                    promises.push(
+                        this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT}
+                                         SET estimated_price = $1
+                                         WHERE id = ${product_id} RETURNING *;`, [transfer_estimated_price])
                     )
                 })
                 return Promise.all(promises).then(r => {
