@@ -1358,6 +1358,27 @@ app.get(KAI_SERVICES.PRODUCTS, (req, res) => {
         });
 });
 
+app.get(`${KAI_SERVICES.PRODUCTS}/customer/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const {id} = req.params;
+
+    productService.getCustomerProducts(id)
+        .then(products => {
+            return res.status(HTTP_STATUSES.OK).json(products)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not search product. --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not search product`
+            });
+        });
+});
+
 app.get(`${KAI_SERVICES.PRODUCTS}/sold`, (req, res) => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
