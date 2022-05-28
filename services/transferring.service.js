@@ -15,6 +15,7 @@ class TransferringService {
                                                p.status,
                                                td.quantity,
                                                td.transfer_price as price,
+                                               td.from_position,
                                                ip.imei,
                                                ip.transfer_status,
                                                ip.to_position,

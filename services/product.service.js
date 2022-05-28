@@ -7,6 +7,47 @@ class ProductService {
         this.pool = dbPool;
     }
 
+    getCustomerProducts(customer_id = null, invoice_id = null) {
+        let queryCondition = `i.id = id.invoice_id AND i.id = pd.invoice_id`;
+        if (notEmpty(customer_id)) {
+            queryCondition += ` AND pd.customer_id = ${customer_id}`
+        }
+        if (notEmpty(invoice_id)) {
+            queryCondition += ` AND i.id = ${invoice_id}`
+        }
+        let queryStr = `SELECT p.id,
+                               p."name",
+                               p.imei,
+                               p.color,
+                               p.status,
+                               p.estimated_price,
+                               p.display_order,
+                               ps.quantity,
+                               ps.price,
+                               ps."position",
+                               ps."source",
+                               pg.id   as product_group_id,
+                               pg.name as group_name
+                        FROM ${DATA_TABLES.PRODUCT} p,
+                             ${DATA_TABLES.PRODUCT_STORAGE} ps,
+                             ${DATA_TABLES.PRODUCT_GROUP} pg,
+                             (SELECT i.id as invoice_id, id.product_id
+                              FROM ${DATA_TABLES.INVOICE} i,
+                                   ${DATA_TABLES.INVOICE_DETAIL} id,
+                                   ${DATA_TABLES.PURCHASING_DETAIL} pd
+                              WHERE ${queryCondition}
+                              GROUP BY id.product_id, i.id) customerPurchase
+                        WHERE p.id = ps.product_id
+                          AND pg.id = p.product_group_id
+                          AND p.id = customerPurchase.product_id
+                          AND ps.quantity > 0;`;
+        return this.pool.query(queryStr)
+            .then(({rows}) => rows)
+            .catch(e => {
+                throw e;
+            });
+    }
+
     getAllProducts(position = null) {
         let queryStr = `SELECT p.id,
                                p."name",
@@ -320,7 +361,18 @@ class ProductService {
     }
 
     insertProduct(productData = null) {
-        const {imei, name, color, status, quantity, price, position, source, estimated_price, product_group_id} = productData;
+        const {
+            imei,
+            name,
+            color,
+            status,
+            quantity,
+            price,
+            position,
+            source,
+            estimated_price,
+            product_group_id
+        } = productData;
         const product_estimated_price = notEmpty(estimated_price) ? estimated_price : 0;
         const productDetail = {
             id: null,
@@ -465,7 +517,7 @@ class ProductService {
                                                     color            =$3,
                                                     status           =$4,
                                                     product_group_id = $5,
-                                                    estimated_price = $6
+                                                    estimated_price  = $6
                                                 WHERE id = ${id} RETURNING *;`,
                             Object.values({
                                 name,
@@ -479,7 +531,17 @@ class ProductService {
                             .then(({rows}) => {
                                 const {id, name, imei, color, status, product_group_id, estimated_price} = rows[0];
                                 return {
-                                    id, name, imei, color, status, quantity, price, position, source, product_group_id, estimated_price
+                                    id,
+                                    name,
+                                    imei,
+                                    color,
+                                    status,
+                                    quantity,
+                                    price,
+                                    position,
+                                    source,
+                                    product_group_id,
+                                    estimated_price
                                 }
                             })
                             .catch(e => {
@@ -493,7 +555,7 @@ class ProductService {
                                                            color            =$3,
                                                            status           =$4,
                                                            product_group_id = $5,
-                                                           estimated_price = $6
+                                                           estimated_price  = $6
                                                        WHERE id = ${id} RETURNING *;`;
                         promises.push(
                             this.pool.query(updateProductQueryStr, Object.values({
