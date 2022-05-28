@@ -97,10 +97,9 @@ class InvoicingService {
                                                 AND p.id = ps.product_id
                                                 AND i.id = pd.invoice_id
                                                 AND i."type" = '${INVOICE_TYPE.PURCHASING}'
-                                                AND ps."position" = '${PRODUCT_SOURCE.KAI}'
                                                 AND i.id = $1
                                                 AND pd.customer_id = $2
-                                              ORDER BY id.product_id ASC;`;
+                                              ORDER BY p.display_order ASC;`;
                     return Promise.all([
                         this.pool.query(getCustomerQuery, [invoice.customer_id]),
                         this.pool.query(getProductsQuery, [invoiceId, invoice.customer_id]),
@@ -322,12 +321,17 @@ class InvoicingService {
                 const promises = [];
                 products.forEach((transferProduct) => {
                     const {quantity, price} = transferProduct;
+                    const estimated_price = notEmpty(transferProduct.estimated_price) ? transferProduct.estimated_price : 0;
                     const product_id = transferProduct.id;
+                    console.log(`>>>> TRANSFER PRODUCT: ID: ${product_id}, From: ${from_position}, TO: ${to_position}, quantity: ${quantity}, price: ${price}`);
                     // Calculate the total_money if transfer from other position to vn storage\
                     let transfer_price = price;
+                    let transfer_estimated_price = estimated_price;
                     if (from_position !== to_position && to_position === PRODUCT_SOURCE.SHOP_VN) {
                         transfer_price = (+transfer_price * +exchange_rate) + +sub_fee;
+                        transfer_estimated_price = (+estimated_price * +exchange_rate) + +sub_fee;
                     }
+
                     promises.push(
                         this.pool.query(`INSERT INTO ${DATA_TABLES.TRANSFER_DETAIL} (invoice_id, product_id,
                                                                                      from_position,
@@ -359,32 +363,11 @@ class InvoicingService {
                                            AND position = '${from_position}' RETURNING *;`)
                     )
 
-                    // promises.push(
-                    //     this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
-                    //                  SET quantity = quantity + ${quantity}
-                    //                  WHERE product_id = ${product_id}
-                    //                    AND position = '${to_position}' RETURNING *;`)
-                    //         .then(({rows}) => {
-                    //             if (rows.length === 0) {
-                    //                 return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
-                    //                         VALUES ($1, $2, $3, $4,
-                    //                                 $5) RETURNING *;`, [product_id, quantity, price, to_position, from_position])
-                    //                     .then(({rows}) => {
-                    //                         const {quantity, price, position, source} = rows[0];
-                    //                         return {
-                    //                             product_id,
-                    //                             quantity,
-                    //                             price,
-                    //                             position,
-                    //                             source
-                    //                         }
-                    //                     });
-                    //             }
-                    //         })
-                    //         .catch(e => {
-                    //             throw e
-                    //         })
-                    // )
+                    promises.push(
+                        this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT}
+                                         SET estimated_price = $1
+                                         WHERE id = ${product_id} RETURNING *;`, [transfer_estimated_price])
+                    )
                 })
                 return Promise.all(promises).then(r => {
                     return {
@@ -946,6 +929,9 @@ class InvoicingService {
     }
 
     _saveProduct(product) {
+        if (isEmpty(product.display_order)) {
+            product.display_order = 0;
+        }
         const getProductByImeiQuery = `SELECT *
                                        FROM ${DATA_TABLES.PRODUCT}
                                        WHERE imei = '${product.imei}';`;
@@ -955,11 +941,12 @@ class InvoicingService {
                 imei: product.imei,
                 color: product.color,
                 status: product.status,
-                product_group_id: product.product_group_id
+                product_group_id: product.product_group_id,
+                display_order: product.display_order,
             }
             let isNewProduct = true;
-            let productQuery = `INSERT INTO ${DATA_TABLES.PRODUCT} (name, imei, color, status, product_group_id)
-                                VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
+            let productQuery = `INSERT INTO ${DATA_TABLES.PRODUCT} (name, imei, color, status, product_group_id, display_order)
+                                VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;`;
             if (rows.length > 0) {
 
                 // Exists quantity
@@ -969,7 +956,8 @@ class InvoicingService {
                                     imei             = $2,
                                     color            = $3,
                                     status           = $4,
-                                    product_group_id = $5
+                                    product_group_id = $5,
+                                    display_order = $6
                                 WHERE id = ${id} RETURNING *;`;
                 isNewProduct = false;
             }

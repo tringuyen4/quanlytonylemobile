@@ -1572,10 +1572,10 @@ app.post(`${KAI_SERVICES.PRODUCTS}`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {imei, name, color, status, quantity, price, position, source, product_group_id} = req.body;
+    const {imei, name, color, status, quantity, price, position, source, product_group_id, estimated_price} = req.body;
 
     productService.insertProduct({
-        imei, name, color, status, quantity, price, position, source, product_group_id
+        imei, name, color, status, quantity, price, position, source, product_group_id, estimated_price
     })
         .then(productDetail => {
             return res.status(HTTP_STATUSES.OK).json(productDetail)
@@ -1618,10 +1618,10 @@ app.put(`${KAI_SERVICES.PRODUCTS}`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id, imei, name, color, status, quantity, price, position, source, product_group_id, update_storage} = req.body;
+    const {id, imei, name, color, status, quantity, price, position, source, product_group_id, estimated_price, update_storage} = req.body;
 
     productService.updateProduct({
-        id, imei, name, color, status, quantity, price, position, source, product_group_id, update_storage
+        id, imei, name, color, status, quantity, price, position, source, product_group_id, estimated_price, update_storage
     })
         .then(productDetail => {
             return res.status(HTTP_STATUSES.OK).json(productDetail)
