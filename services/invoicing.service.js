@@ -41,7 +41,8 @@ class InvoicingService {
                                         WHERE i.id = pd.invoice_id
                                           AND pd.customer_id = c.id
                                           AND i."type" = '${INVOICE_TYPE.PURCHASING}'
-                                          AND i.status != '${INVOICE_STATUS.TERMINATED}';`;
+                                          AND i.status != '${INVOICE_STATUS.TERMINATED}'
+                                        ORDER BY pd.created_at ASC;`;
 
         return this.pool.query(purchasingInvoiceQuery)
             .then(({rows}) => {
