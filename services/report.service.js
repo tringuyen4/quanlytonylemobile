@@ -8,8 +8,7 @@ class ReportService {
     kaiPurchasingInvoiceReport(invoiceId = 0) {
         return this.pool.query(`SELECT *
                                 FROM ${DATA_TABLES.PURCHASING_DETAIL}
-                                WHERE invoice_id = ${invoiceId}
-                                LIMIT 1;`)
+                                WHERE invoice_id = ${invoiceId} LIMIT 1;`)
             .then(({rows}) => {
                 if (rows.length > 0) {
                     const {invoice_id, customer_id} = rows[0];
@@ -61,21 +60,27 @@ class ReportService {
     }
 
     _kaiPurchasingInvoiceReportSummary(invoiceId = 0) {
-        const invoiceSummarySql = `SELECT pd.invoice_id, SUM(id.quantity) AS quantity, SUM(id.price) AS total_money
-                                   FROM purchasing_detail pd,
-                                        invoice_detail id,
-                                        invoice i,
-                                        product p
-                                   WHERE i.id = id.invoice_id
-                                     AND i.id = pd.invoice_id
-                                     AND p.id = id.product_id
-                                   GROUP BY pd.invoice_id
-                                   HAVING pd.invoice_id = $1`;
+        const invoiceSummarySql = `SELECT reportSummary.*,
+                                          i.sale_date
+                                   FROM invoice i,
+                                        (SELECT pd.invoice_id,
+                                                SUM(id.quantity) AS quantity,
+                                                SUM(id.price)    AS total_money
+                                         FROM purchasing_detail pd,
+                                              invoice_detail id,
+                                              invoice i,
+                                              product p
+                                         WHERE i.id = id.invoice_id
+                                           AND i.id = pd.invoice_id
+                                           AND p.id = id.product_id
+                                         GROUP BY pd.invoice_id
+                                         HAVING pd.invoice_id = $1) reportSummary
+                                   WHERE reportSummary.invoice_id = i.id LIMIT 1`;
         return this.pool.query(invoiceSummarySql, [invoiceId])
             .then(({rows}) => {
                 if (rows.length > 0) {
-                    const {invoice_id, quantity, total_money} = rows[0];
-                    return {invoice_id, quantity: parseInt(quantity), total_money: parseInt(total_money)}
+                    const {invoice_id, quantity, total_money, sale_date} = rows[0];
+                    return {sale_date, invoice_id, quantity: parseInt(quantity), total_money: parseInt(total_money)}
                 }
                 return null;
             })
@@ -100,7 +105,7 @@ class ReportService {
                                           AND i.id = pd.invoice_id
                                           AND p.id = id.product_id
                                           AND pd.invoice_id = $1
-                                        ORDER BY p.id ASC;`;
+                                        ORDER BY p.display_order ASC;`;
         return this.pool.query(invoiceReportDataQuery, [invoiceId])
             .then(({rows}) => rows)
             .catch(e => {

@@ -98,6 +98,7 @@ class InvoicingService {
                                                 AND p.id = ps.product_id
                                                 AND i.id = pd.invoice_id
                                                 AND i."type" = '${INVOICE_TYPE.PURCHASING}'
+                                                AND ps."position" = '${PRODUCT_SOURCE.SHOP_JP}'
                                                 AND i.id = $1
                                                 AND pd.customer_id = $2
                                               ORDER BY p.display_order ASC;`;
