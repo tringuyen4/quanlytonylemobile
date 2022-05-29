@@ -14,7 +14,7 @@ const EXPORT_TEMPLATES = {
 }
 
 const INVOICE_EXPORT_CELLS = {
-    SALE_DATE: 'G3',
+    SALE_DATE: 'B2',
     JAPANESE_NAME: 'C5',
     VIETNAMESE_NAME: 'C6',
     BIRTHDAY: 'E5',
@@ -76,18 +76,19 @@ class ExportService {
         ws.getCell(INVOICE_EXPORT_CELLS.ADDRESS).value = address;
         ws.getCell(INVOICE_EXPORT_CELLS.JOB).value = getJobText(job);
         ws.getCell(INVOICE_EXPORT_CELLS.AGE).value = getAgeText(birthday);
-        ws.getCell(INVOICE_EXPORT_CELLS.SALE_DATE).value = dateFormat(sale_date);
+        // ws.getCell(INVOICE_EXPORT_CELLS.SALE_DATE).value = dateFormat(sale_date);
         ws.getCell(INVOICE_EXPORT_CELLS.BIRTHDAY).value = dateFormat(birthday);
         return wb;
     }
 
     _writeInvoiceReportSummary(wb, summaryData, summaryRowIndex = INVOICE_EXPORT_CELLS.MOBILE_TABLE_START_ROW + 1) {
         const ws = wb.getWorksheet(1);
-        const {quantity, total_money} = summaryData;
+        const {quantity, total_money, sale_date} = summaryData;
         const quantityAddress = `${INVOICE_EXPORT_CELLS.SUMMARY_QUANTITY_COLUMN}${summaryRowIndex}`;
         ws.getCell(quantityAddress).value = quantity;
         const totalMoneyAddress = `${INVOICE_EXPORT_CELLS.SUMMARY_MONEY_COLUMN}${summaryRowIndex}`;
         ws.getCell(totalMoneyAddress).value = priceWithFormat(total_money);
+        ws.getCell(INVOICE_EXPORT_CELLS.SALE_DATE).value = dateFormat(sale_date);
         return wb;
     }
 

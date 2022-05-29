@@ -1439,6 +1439,30 @@ app.get(`${KAI_SERVICES.PRODUCTS}/on-sale/kai`, (req, res) => {
 
 });
 
+
+app.get(`${KAI_SERVICES.PRODUCTS}/on-sale/shop-jp`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    productService.getOnSaleProducts([
+        PRODUCT_SOURCE.KAI,
+        PRODUCT_SOURCE.SHOP_JP
+    ])
+        .then(products => {
+            return res.status(HTTP_STATUSES.OK).json(products)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not search product for KAI store. --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not search product for KAI store`
+            });
+        });
+
+});
+
 // Get All Product for KAI store
 app.get(`${KAI_SERVICES.PRODUCTS}/sold/kai`, (req, res) => {
     res.header("Access-Control-Allow-Origin", "*");

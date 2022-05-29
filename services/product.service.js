@@ -136,6 +136,10 @@ class ProductService {
     }
 
     getOnSaleProducts(position = null) {
+        let positionCondition = `AND ps."position" = '${position}'`;
+        if (notEmpty(position) && Array.isArray(position)) {
+            positionCondition = `AND ps."position" IN (${position.map(x => `'${x}'`).join(',')}) `;
+        }
         const onSaleProductQuery = `SELECT storage_data.*, purchasing_data.*
                                     FROM (SELECT id.product_id, i.sale_date, id.invoice_id
                                           FROM invoice i,
@@ -164,10 +168,10 @@ class ProductService {
                                           WHERE p.id = ps.product_id
                                             AND p.product_group_id = pg.id
                                             AND ps.quantity >= 0
-                                            AND ps."position" = $1) storage_data
+                                            ${positionCondition} ) storage_data
                                     WHERE product_data.invoice_id = purchasing_data.invoice_id
                                       AND storage_data.id = product_data.product_id;`;
-        return this.pool.query(onSaleProductQuery, [position])
+        return this.pool.query(onSaleProductQuery)
             .then(({rows}) => rows)
             .catch(e => {
                 throw e
