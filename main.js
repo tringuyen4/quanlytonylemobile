@@ -2002,14 +2002,17 @@ app.post(`${KAI_SERVICES.PURCHASING_INVOICES}`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {invoice_id, customer, products, quantity, total_money, sale_date} = req.body;
+    const {invoice_id, customer, products, quantity, total_money, sale_date, payment_type, payment_detail, payment_create_date} = req.body;
     invoicingService.purchasingInvoice({
         invoice_id,
         customer,
         products,
         quantity,
         total_money,
-        sale_date
+        sale_date,
+        payment_type,
+        payment_detail,
+        payment_create_date
     })
         .then((purchasingInvoice) => {
             return res.status(HTTP_STATUSES.OK).json(purchasingInvoice);
@@ -2029,14 +2032,17 @@ app.post(`${KAI_SERVICES.PURCHASING_INVOICES}/save-and-report`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {invoice_id, customer, products, quantity, total_money, sale_date} = req.body;
+    const {invoice_id, customer, products, quantity, total_money, sale_date, payment_type, payment_detail, payment_create_date} = req.body;
     invoicingService.purchasingInvoice({
         invoice_id,
         customer,
         products,
         quantity,
         total_money,
-        sale_date
+        sale_date,
+        payment_type,
+        payment_detail,
+        payment_create_date
     })
         .then((purchasingInvoice) => {
             reportService.kaiPurchasingInvoiceReport(purchasingInvoice.invoice_id)
