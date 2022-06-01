@@ -73,6 +73,11 @@ const REPORT_TYPE = {
     DATE_RANGE: 'DATE_RANGE'
 }
 
+const PAYMENT_METHOD = {
+    CASH: 'tienmat',
+    TRANSFER: 'chuyenkhoan',
+}
+
 module.exports = {
     APP_VERSION,
     AGE_PREFIX,
@@ -85,5 +90,6 @@ module.exports = {
     INVOICE_STATUS,
     PRODUCT_SOURCE,
     REPORT_TYPE,
-    TRANSFER_STATUS
+    TRANSFER_STATUS,
+    PAYMENT_METHOD
 }
