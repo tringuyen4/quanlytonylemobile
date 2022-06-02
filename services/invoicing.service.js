@@ -836,7 +836,7 @@ class InvoicingService {
         }
 
         let purchasingInvoiceQuery = `INSERT INTO ${DATA_TABLES.INVOICE} (sale_date, total_quantity, total_money, type, status, payment_type)
-                                      VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
+                                      VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;`;
         if (notEmpty(invoice_id)) {
             purchasingInvoiceQuery = `UPDATE ${DATA_TABLES.INVOICE}
                                       SET sale_date      = $1,
