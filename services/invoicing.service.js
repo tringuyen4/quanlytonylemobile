@@ -242,10 +242,11 @@ class InvoicingService {
                 if (rows.length > 0) {
                     const promises = [];
                     rows.forEach((invoiceItem) => {
+                        const purchasingShops = [PRODUCT_SOURCE.KAI, PRODUCT_SOURCE.SHOP_JP].map(x => `'${x}'`).join(',')
                         const updateProductQuantityQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
                                                             SET quantity = quantity + ${invoiceItem.quantity}
                                                             WHERE product_id = ${invoiceItem.product_id}
-                                                              AND position = '${PRODUCT_SOURCE.KAI}';`;
+                                                              AND position IN (${purchasingShops});`;
                         promises.push(
                             this.pool.query(updateProductQuantityQuery)
                         )
