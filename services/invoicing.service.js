@@ -170,12 +170,13 @@ class InvoicingService {
         return this.pool.query(getPurchasingProductsQuery, [invoiceId])
             .then(({rows}) => {
                 const promises = [];
+                const purchasingShops = [PRODUCT_SOURCE.KAI, PRODUCT_SOURCE.SHOP_JP].map(x => `'${x}'`).join(',')
                 rows.forEach((purchasingProduct) => {
                     const {product_id, purchasing_quantity} = purchasingProduct;
                     const updateProductQuantityQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
                                                         SET quantity = quantity - ${purchasing_quantity}
                                                         WHERE product_id = ${product_id}
-                                                          AND position = '${PRODUCT_SOURCE.KAI}';`;
+                                                          AND position IN (${purchasingShops});`;
                     promises.push(
                         this.pool.query(updateProductQuantityQuery)
                     )
@@ -241,10 +242,11 @@ class InvoicingService {
                 if (rows.length > 0) {
                     const promises = [];
                     rows.forEach((invoiceItem) => {
+                        const purchasingShops = [PRODUCT_SOURCE.KAI, PRODUCT_SOURCE.SHOP_JP].map(x => `'${x}'`).join(',')
                         const updateProductQuantityQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
                                                             SET quantity = quantity + ${invoiceItem.quantity}
                                                             WHERE product_id = ${invoiceItem.product_id}
-                                                              AND position = '${PRODUCT_SOURCE.KAI}';`;
+                                                              AND position IN (${purchasingShops});`;
                         promises.push(
                             this.pool.query(updateProductQuantityQuery)
                         )
