@@ -614,7 +614,7 @@ app.get('/getdanhsachdonhangquanlymobile/', function (req, res) {
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     console.log(req);
-    pool.query(`select * from danhsachdonhang where vitri='WAREHOUSE'`, function (error, results, fields) {
+    pool.query(`select * from danhsachdonhang where vitri='WAREHOUSE' order by madonhang desc`, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
     });
@@ -627,7 +627,7 @@ app.get('/getdanhsachdonhangquanlymobilevn/', function (req, res) {
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     console.log(req);
-    pool.query(`select * from danhsachdonhang where vitri='SHOP_VN'`, function (error, results, fields) {
+    pool.query(`select * from danhsachdonhang where vitri='SHOP_VN' order by madonhang desc`, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
     });
@@ -640,7 +640,7 @@ app.get('/getdanhsachdonhangquanlymobilejp/', function (req, res) {
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     console.log(req);
-    pool.query(`select * from danhsachdonhang where vitri='SHOP_JP'`, function (error, results, fields) {
+    pool.query(`select * from danhsachdonhang where vitri='SHOP_JP' order by madonhang desc`, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
     });
