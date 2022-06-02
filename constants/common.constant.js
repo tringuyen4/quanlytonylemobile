@@ -34,10 +34,22 @@ const MOBILE_STATUSES = [
     {label: 'Like New', value: DEVICE_STATUS.LIKE_NEW},
     {label: 'Like New TBH', value: DEVICE_STATUS.LIKE_NEW_TBH},
     {label: 'Second-A', value: DEVICE_STATUS.SECOND_HAND_A},
-    {label: 'Second-B', value: DEVICE_STATUS.SECOND_HAND_A},
-    {label: 'Second-C', value: DEVICE_STATUS.SECOND_HAND_A},
-    {label: 'Second-D', value: DEVICE_STATUS.SECOND_HAND_A},
+    {label: 'Second-B', value: DEVICE_STATUS.SECOND_HAND_B},
+    {label: 'Second-C', value: DEVICE_STATUS.SECOND_HAND_C},
+    {label: 'Second-D', value: DEVICE_STATUS.SECOND_HAND_D},
 ]
+
+
+const BANK = {
+    ORDINARY_DEPOSIT: 'ORDINARY_DEPOSIT',
+    CHECKS_DEPOSIT: 'CHECKS_DEPOSIT',
+}
+
+const BANKS = [
+    {label: '普通預金', value: BANK.ORDINARY_DEPOSIT},
+    {label: '当座預金', value: BANK.CHECKS_DEPOSIT},
+];
+
 
 const INVOICE_TYPE = {
     PURCHASING: 'PURCHASING',
@@ -91,5 +103,7 @@ module.exports = {
     PRODUCT_SOURCE,
     REPORT_TYPE,
     TRANSFER_STATUS,
-    PAYMENT_METHOD
+    PAYMENT_METHOD,
+    BANK,
+    BANKS
 }
