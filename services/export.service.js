@@ -5,12 +5,13 @@ const {
     dateFormat,
     getJobText,
     getDeviceStatusText,
-    priceWithFormat
+    priceWithFormat, getBankName
 } = require("../utils/common.utils");
 const {notEmpty} = require("../utils/data.utils");
 
 const EXPORT_TEMPLATES = {
-    INVOICE: './exports/invoice_template.xlsx'
+    INVOICE: './exports/invoice_template.xlsx',
+    TRANSFER_PAYMENT_INVOICE: './exports/transfer_payment_invoice_template.xlsx'
 }
 
 const INVOICE_EXPORT_CELLS = {
@@ -22,7 +23,15 @@ const INVOICE_EXPORT_CELLS = {
     AGE: 'G5',
     JOB: 'G7',
     ADDRESS: 'C7',
+
+    PAYMENT_INVOICE_CODE: 'C9',
+    PAYMENT_BANK_NAME: 'C10',
+    PAYMENT_BRANCH_NAME: 'C11',
+    PAYMENT_BANK_ID: 'F10',
+    PAYMENT_ACCOUNT_NAME: 'F11',
+
     MOBILE_TABLE_START_ROW: 11,
+    PRODUCT_TABLE_START_ROW: 13,
     NO_COLUMN: 'A',
     MOBILE_NAME_COLUMN: 'B',
     MOBILE_NAME_ALTER_COLUMN: 'C',
@@ -59,6 +68,36 @@ class ExportService {
         return invoiceTemplate.xlsx.writeBuffer().then((buffer) => buffer).catch((e) => {
             console.log('>>> ExportService:invoiceReport Error: ', e);
         });
+    }
+
+
+    async invoiceReportTransferPayment(reportDetail) {
+        let invoiceTemplate = await this._readTemplate(EXPORT_TEMPLATES.TRANSFER_PAYMENT_INVOICE);
+        const {reportHeader, summary, products, paymentDetail} = reportDetail;
+        // Write fixed heading
+        invoiceTemplate = this._writeInvoiceReportHeader(invoiceTemplate, reportHeader);
+        // Write fixed heading
+        invoiceTemplate = this._writeInvoiceReportPaymentDetail(invoiceTemplate, paymentDetail);
+        // Write devices list
+        invoiceTemplate = this._writeInvoiceReportItems(invoiceTemplate, products, INVOICE_EXPORT_CELLS.PRODUCT_TABLE_START_ROW);
+        // Write the summary values
+        const summaryRowIndex = INVOICE_EXPORT_CELLS.PRODUCT_TABLE_START_ROW + (notEmpty(products) ? products.length : 1);
+        invoiceTemplate = this._writeInvoiceReportSummary(invoiceTemplate, summary, summaryRowIndex);
+        // Write workbook as a arrayBuffer
+        return invoiceTemplate.xlsx.writeBuffer().then((buffer) => buffer).catch((e) => {
+            console.log('>>> ExportService:invoiceReport Error: ', e);
+        });
+    }
+
+    _writeInvoiceReportPaymentDetail(wb, paymentDetail) {
+        const ws = wb.getWorksheet(1);
+        const {invoice_id, invoice_code, bank_id, bank_name, branch_name, account_name} = paymentDetail;
+        ws.getCell(INVOICE_EXPORT_CELLS.PAYMENT_INVOICE_CODE).value = invoice_code;
+        ws.getCell(INVOICE_EXPORT_CELLS.PAYMENT_BANK_ID).value = bank_id;
+        ws.getCell(INVOICE_EXPORT_CELLS.PAYMENT_BANK_NAME).value = getBankName(bank_name);
+        ws.getCell(INVOICE_EXPORT_CELLS.PAYMENT_BRANCH_NAME).value = branch_name;
+        ws.getCell(INVOICE_EXPORT_CELLS.PAYMENT_ACCOUNT_NAME).value = account_name;
+        return wb;
     }
 
     /**
@@ -146,8 +185,9 @@ class ExportService {
 
 
     async _readTemplate(templatePath) {
+        const templateFile = notEmpty(templatePath) ? templatePath : EXPORT_TEMPLATES.INVOICE;
         const wb = new ExcelJs.Workbook();
-        return await wb.xlsx.readFile(EXPORT_TEMPLATES.INVOICE).then((wb) => wb).catch((e) => {
+        return await wb.xlsx.readFile(templateFile).then((wb) => wb).catch((e) => {
             console.log('>>> ExportService:_readTemplate Error: ', e);
         });
     }

@@ -122,7 +122,8 @@ CREATE TABLE product_group
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT INTO product_group(name) values('DEFAULT');
+INSERT INTO product_group(name)
+values ('DEFAULT');
 
 ALTER TABLE product
     ADD COLUMN product_group_id INT NOT NULL DEFAULT 1;
@@ -143,3 +144,25 @@ ALTER TABLE product
 
 ALTER TABLE product
     ADD COLUMN display_order INT NOT NULL DEFAULT 0;
+
+CREATE TABLE invoice_payment
+(
+    id           INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    invoice_id   INT       NOT NULL,
+    invoice_code VARCHAR NULL DEFAULT NULL,
+    bank_id      VARCHAR NULL DEFAULT NULL,
+    bank_name    VARCHAR NULL DEFAULT NULL,
+    branch_name  VARCHAR NULL DEFAULT NULL,
+    account_name VARCHAR NULL DEFAULT NULL,
+    created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_invoice_payment
+        FOREIGN KEY (invoice_id)
+            REFERENCES invoice (id) ON DELETE CASCADE
+);
+
+ALTER TABLE invoice
+    ADD COLUMN payment_type VARCHAR NOT NULL DEFAULT 'CASH';
+
+ALTER TABLE quanlychi
+    ADD COLUMN invoice_id INT NOT NULL DEFAULT 0;

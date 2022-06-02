@@ -15,7 +15,7 @@ const {
 } = require("./constants/data.constant");
 const {HTTP_STATUSES} = require("./constants/http.constant");
 const {notEmpty, isEmpty} = require("./utils/data.utils");
-const {INVOICE_TYPE, PRODUCT_SOURCE, INVOICE_STATUS, TRANSFER_STATUS, APP_VERSION} = require("./constants/common.constant");
+const {INVOICE_TYPE, PRODUCT_SOURCE, INVOICE_STATUS, TRANSFER_STATUS, APP_VERSION, PAYMENT_METHOD} = require("./constants/common.constant");
 const {InvoicingService} = require("./services/invoicing.service");
 const {ProductService} = require("./services/product.service");
 const {CustomerService} = require("./services/customer.service");
@@ -2002,14 +2002,17 @@ app.post(`${KAI_SERVICES.PURCHASING_INVOICES}`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {invoice_id, customer, products, quantity, total_money, sale_date} = req.body;
+    const {invoice_id, customer, products, quantity, total_money, sale_date, payment_type, payment_detail, payment_create_date} = req.body;
     invoicingService.purchasingInvoice({
         invoice_id,
         customer,
         products,
         quantity,
         total_money,
-        sale_date
+        sale_date,
+        payment_type,
+        payment_detail,
+        payment_create_date
     })
         .then((purchasingInvoice) => {
             return res.status(HTTP_STATUSES.OK).json(purchasingInvoice);
@@ -2029,32 +2032,55 @@ app.post(`${KAI_SERVICES.PURCHASING_INVOICES}/save-and-report`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {invoice_id, customer, products, quantity, total_money, sale_date} = req.body;
+    const {invoice_id, customer, products, quantity, total_money, sale_date, payment_type, payment_detail, payment_create_date} = req.body;
     invoicingService.purchasingInvoice({
         invoice_id,
         customer,
         products,
         quantity,
         total_money,
-        sale_date
+        sale_date,
+        payment_type,
+        payment_detail,
+        payment_create_date
     })
         .then((purchasingInvoice) => {
-            reportService.kaiPurchasingInvoiceReport(purchasingInvoice.invoice_id)
-                .then(reportData => {
-                    exportService.invoiceReport(reportData)
-                        .then((bufferResponse) => {
-                            console.log('>>> Generate Invoice Report Finished! Customer Name: ', reportData.reportHeader.name_vietnamese);
-                            res.end(bufferResponse);
-                        })
-                        .catch(e => {
-                            console.log('>>>> Can not export purchasing invoice for Customer with name: ', reportData.reportHeader.name_vietnamese);
-                            res.end(null);
-                        });
-                })
-                .catch(e => {
-                    console.log('>>>> Can not export purchasing invoice for Customer with invoice id: ', id);
-                    res.end(null);
-                })
+            if (notEmpty(payment_type) && payment_type === PAYMENT_METHOD.TRANSFER) {
+                reportService.kaiPurchasingInvoiceReportTransferPayment(purchasingInvoice.invoice_id)
+                    .then(reportData => {
+                        exportService.invoiceReportTransferPayment(reportData)
+                            .then((bufferResponse) => {
+                                console.log('>>> Generate Invoice Report Finished! Customer Name: ', reportData.reportHeader.name_vietnamese);
+                                res.end(bufferResponse);
+                            })
+                            .catch(e => {
+                                console.log('>>>> Can not export purchasing invoice for Customer with name: ', reportData.reportHeader.name_vietnamese);
+                                res.end(null);
+                            });
+                    })
+                    .catch(e => {
+                        console.log('>>>> Can not export purchasing invoice for Customer with invoice id: ', invoice_id);
+                        res.end(null);
+                    })
+
+            } else {
+                reportService.kaiPurchasingInvoiceReport(purchasingInvoice.invoice_id)
+                    .then(reportData => {
+                        exportService.invoiceReport(reportData)
+                            .then((bufferResponse) => {
+                                console.log('>>> Generate Invoice Report Finished! Customer Name: ', reportData.reportHeader.name_vietnamese);
+                                res.end(bufferResponse);
+                            })
+                            .catch(e => {
+                                console.log('>>>> Can not export purchasing invoice for Customer with name: ', reportData.reportHeader.name_vietnamese);
+                                res.end(null);
+                            });
+                    })
+                    .catch(e => {
+                        console.log('>>>> Can not export purchasing invoice for Customer with invoice id: ', invoice_id);
+                        res.end(null);
+                    })
+            }
         })
         .catch(e => {
             console.log('>>>> ERROR: Can not create/update invoice: ', e);
