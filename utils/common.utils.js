@@ -1,5 +1,5 @@
 const {notEmpty, isEmpty} = require("./data.utils");
-const {AGE_PREFIX, JAPANESE, PEOPLE_JOBS, MOBILE_STATUSES, BANKS} = require("../constants/common.constant");
+const {AGE_PREFIX, JAPANESE, PEOPLE_JOBS, MOBILE_STATUSES, PAYMENT_METHODS} = require("../constants/common.constant");
 const CURRENT_YEAR = new Date().getFullYear();
 
 const isDate = (date) => {
@@ -39,9 +39,9 @@ const getDeviceStatusText = (deviceStatus = '') => {
     return null;
 }
 
-const getBankName = (bankNameCode = '') => {
-    if (isEmpty(bankNameCode)) return null;
-    const bank = BANKS.find((x) => x.value === bankNameCode.trim());
+const getPaymentMethod = (paymentMethod = '') => {
+    if (isEmpty(paymentMethod)) return null;
+    const bank = PAYMENT_METHODS.find((x) => x.value === paymentMethod.trim());
     if (notEmpty(bank)) {
         return bank.label
     }
@@ -71,5 +71,5 @@ module.exports = {
     dateFormat,
     CURRENT_YEAR,
     sleep,
-    getBankName
+    getPaymentMethod
 }

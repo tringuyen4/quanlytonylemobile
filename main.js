@@ -15,7 +15,14 @@ const {
 } = require("./constants/data.constant");
 const {HTTP_STATUSES} = require("./constants/http.constant");
 const {notEmpty, isEmpty} = require("./utils/data.utils");
-const {INVOICE_TYPE, PRODUCT_SOURCE, INVOICE_STATUS, TRANSFER_STATUS, APP_VERSION, PAYMENT_METHOD} = require("./constants/common.constant");
+const {
+    INVOICE_TYPE,
+    PRODUCT_SOURCE,
+    INVOICE_STATUS,
+    TRANSFER_STATUS,
+    APP_VERSION,
+    PAYMENT_TYPE
+} = require("./constants/common.constant");
 const {InvoicingService} = require("./services/invoicing.service");
 const {ProductService} = require("./services/product.service");
 const {CustomerService} = require("./services/customer.service");
@@ -59,8 +66,8 @@ app.use(cors());
 
 const pool = new Pool({
     connectionString,
-      ssl: {
-      rejectUnauthorized: false
+    ssl: {
+        rejectUnauthorized: false
     }
 })
 
@@ -1663,10 +1670,34 @@ app.put(`${KAI_SERVICES.PRODUCTS}`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id, imei, name, color, status, quantity, price, position, source, product_group_id, estimated_price, update_storage} = req.body;
+    const {
+        id,
+        imei,
+        name,
+        color,
+        status,
+        quantity,
+        price,
+        position,
+        source,
+        product_group_id,
+        estimated_price,
+        update_storage
+    } = req.body;
 
     productService.updateProduct({
-        id, imei, name, color, status, quantity, price, position, source, product_group_id, estimated_price, update_storage
+        id,
+        imei,
+        name,
+        color,
+        status,
+        quantity,
+        price,
+        position,
+        source,
+        product_group_id,
+        estimated_price,
+        update_storage
     })
         .then(productDetail => {
             return res.status(HTTP_STATUSES.OK).json(productDetail)
@@ -2002,7 +2033,17 @@ app.post(`${KAI_SERVICES.PURCHASING_INVOICES}`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {invoice_id, customer, products, quantity, total_money, sale_date, payment_type, payment_detail, payment_create_date} = req.body;
+    const {
+        invoice_id,
+        customer,
+        products,
+        quantity,
+        total_money,
+        sale_date,
+        payment_type,
+        payment_detail,
+        payment_create_date
+    } = req.body;
     invoicingService.purchasingInvoice({
         invoice_id,
         customer,
@@ -2032,7 +2073,17 @@ app.post(`${KAI_SERVICES.PURCHASING_INVOICES}/save-and-report`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {invoice_id, customer, products, quantity, total_money, sale_date, payment_type, payment_detail, payment_create_date} = req.body;
+    const {
+        invoice_id,
+        customer,
+        products,
+        quantity,
+        total_money,
+        sale_date,
+        payment_type,
+        payment_detail,
+        payment_create_date
+    } = req.body;
     invoicingService.purchasingInvoice({
         invoice_id,
         customer,
@@ -2045,7 +2096,7 @@ app.post(`${KAI_SERVICES.PURCHASING_INVOICES}/save-and-report`, (req, res) => {
         payment_create_date
     })
         .then((purchasingInvoice) => {
-            if (notEmpty(payment_type) && payment_type === PAYMENT_METHOD.TRANSFER) {
+            if (notEmpty(payment_type) && payment_type === PAYMENT_TYPE.TRANSFER) {
                 reportService.kaiPurchasingInvoiceReportTransferPayment(purchasingInvoice.invoice_id)
                     .then(reportData => {
                         exportService.invoiceReportTransferPayment(reportData)
@@ -3150,6 +3201,28 @@ app.put(`${KAI_SERVICES.TRANSFERRING}/receive`, (req, res) => {
 
 });
 
+app.post(`${KAI_SERVICES.TRANSFERRING}/receive`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const transferProducts = req.body;
+
+    transferringService.receiveTransferProducts(transferProducts)
+        .then((result) => {
+            return res.status(HTTP_STATUSES.OK).json(result)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get KAI incoming product. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get KAI statistics.'
+            })
+        })
+
+});
+
 app.get(`${KAI_SERVICES.TRANSFERRING}/:invoice_id/:product_id`, (req, res) => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
@@ -3248,7 +3321,7 @@ app.get(`${KAI_SERVICES.APP_INFO}`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    return res.status(HTTP_STATUSES.OK).json({version: APP_VERSION });
+    return res.status(HTTP_STATUSES.OK).json({version: APP_VERSION});
 
 });
 

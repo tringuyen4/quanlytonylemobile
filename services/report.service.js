@@ -74,14 +74,15 @@ class ReportService {
         return this.pool.query(paymentDetailSql, [invoiceId])
             .then(({rows}) => {
                 if (rows.length > 0) {
-                    const {invoice_id, invoice_code, bank_id, bank_name, branch_name, account_name} = rows[0];
+                    const {invoice_id, invoice_code, bank_id, bank_name, branch_name, account_name, payment_method} = rows[0];
                     return {
                         invoice_id,
                         invoice_code,
                         bank_id,
                         bank_name,
                         branch_name,
-                        account_name
+                        account_name,
+                        payment_method
                     }
                 }
                 return null;

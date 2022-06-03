@@ -9,7 +9,7 @@ class TransferringService {
 
     getOutgoingProducts(source = PRODUCT_SOURCE.KAI, statuses = [TRANSFER_STATUS.PROCESSING]) {
         const transfer_status = statuses.map(x => `'${x}'`).join(',');
-        let getIncomingProductsQuery = `SELECT p.id    as product_id,
+        let getIncomingProductsQuery = `SELECT p.id              as product_id,
                                                p.name,
                                                p.color,
                                                p.status,
@@ -22,7 +22,7 @@ class TransferringService {
                                                ip.to_position,
                                                ip.transfer_date,
                                                ip.invoice_id,
-                                               pg.name as group_name
+                                               pg.name           as group_name
                                         FROM ${DATA_TABLES.PRODUCT} p,
                                              ${DATA_TABLES.PRODUCT_GROUP} pg,
                                              ${DATA_TABLES.TRANSFER_DETAIL} td,
@@ -55,7 +55,7 @@ class TransferringService {
 
     getTransferringProducts(source = PRODUCT_SOURCE.KAI, statuses = [TRANSFER_STATUS.TRANSFERRING]) {
         const transfer_status = statuses.map(x => `'${x}'`).join(',');
-        let getTransferringProductsQuery = `SELECT p.id    as product_id,
+        let getTransferringProductsQuery = `SELECT p.id              as product_id,
                                                    p.name,
                                                    p.color,
                                                    p.status,
@@ -67,7 +67,7 @@ class TransferringService {
                                                    ip.from_position,
                                                    ip.transfer_date,
                                                    ip.invoice_id,
-                                                   pg.name as group_name
+                                                   pg.name           as group_name
                                             FROM ${DATA_TABLES.PRODUCT} p,
                                                  ${DATA_TABLES.PRODUCT_GROUP} pg,
                                                  ${DATA_TABLES.TRANSFER_DETAIL} td,
@@ -98,7 +98,7 @@ class TransferringService {
 
     getTransferredProducts(source = PRODUCT_SOURCE.KAI, statuses = [TRANSFER_STATUS.TRANSFERRED]) {
         const transfer_status = statuses.map(x => `'${x}'`).join(',');
-        let getTransferringProductsQuery = `SELECT p.id    as product_id,
+        let getTransferringProductsQuery = `SELECT p.id              as product_id,
                                                    p.name,
                                                    p.color,
                                                    p.status,
@@ -111,7 +111,7 @@ class TransferringService {
                                                    ip.transfer_date,
                                                    ip.receive_date,
                                                    ip.invoice_id,
-                                                   pg.name as group_name
+                                                   pg.name           as group_name
                                             FROM ${DATA_TABLES.PRODUCT} p,
                                                  ${DATA_TABLES.PRODUCT_GROUP} pg,
                                                  ${DATA_TABLES.TRANSFER_DETAIL} td,
@@ -145,7 +145,7 @@ class TransferringService {
 
     getNotFoundProducts(source = PRODUCT_SOURCE.KAI, statuses = [TRANSFER_STATUS.NOT_FOUND]) {
         const transfer_status = statuses.map(x => `'${x}'`).join(',');
-        let getTransferringProductsQuery = `SELECT p.id    as product_id,
+        let getTransferringProductsQuery = `SELECT p.id              as product_id,
                                                    p.name,
                                                    p.color,
                                                    p.status,
@@ -157,7 +157,7 @@ class TransferringService {
                                                    ip.from_position,
                                                    ip.transfer_date,
                                                    ip.invoice_id,
-                                                   pg.name as group_name
+                                                   pg.name           as group_name
                                             FROM ${DATA_TABLES.PRODUCT} p,
                                                  ${DATA_TABLES.TRANSFER_DETAIL} td,
                                                  ${DATA_TABLES.PRODUCT_GROUP} pg,
@@ -224,6 +224,113 @@ class TransferringService {
             .catch(e => {
                 throw e
             })
+    }
+
+    receiveTransferProducts(transferProducts) {
+        if (notEmpty(transferProducts) && transferProducts.length > 0) {
+            const promises = [];
+            const transfer_statuses = [TRANSFER_STATUS.TRANSFERRING, TRANSFER_STATUS.NOT_FOUND].map(x => `'${x}'`).join(',');
+            transferProducts.forEach(transferItem => {
+                const {product_id, invoice_id} = transferItem;
+                let transferQuantity = transferItem.quantity;
+                promises.push(
+                    this.pool.query(`SELECT *
+                                     FROM ${DATA_TABLES.TRANSFER_DETAIL}
+                                     WHERE invoice_id = $1
+                                       AND product_id = $2
+                                       AND transfer_status IN (${transfer_statuses})`, [invoice_id, product_id])
+                        .then(({rows}) => {
+                            if (rows.length > 0) {
+                                const {quantity, from_position, to_position, price, transfer_price} = rows[0];
+                                let updateTransferDetailQuery = '';
+                                let updateTransferDetailQueryParams = null;
+                                if (transferQuantity < quantity && notEmpty(transferQuantity)) {
+                                    updateTransferDetailQuery = `UPDATE ${DATA_TABLES.TRANSFER_DETAIL}
+                                                                 SET quantity     = $1,
+                                                                     receive_date = $2
+                                                                 WHERE invoice_id = $3
+                                                                   AND product_id = $4`;
+                                    updateTransferDetailQueryParams = {
+                                        quantity: quantity - transferQuantity,
+                                        receive_date: 'now()',
+                                        invoice_id,
+                                        product_id
+                                    }
+
+                                } else {
+                                    transferQuantity = quantity;
+                                    updateTransferDetailQuery = `UPDATE ${DATA_TABLES.TRANSFER_DETAIL}
+                                                                 SET transfer_status = $1,
+                                                                     receive_date    = $2
+                                                                 WHERE invoice_id = $3
+                                                                   AND product_id = $4`;
+                                    updateTransferDetailQueryParams = {
+                                        transfer_status: TRANSFER_STATUS.TRANSFERRED,
+                                        transfer_date: 'now()',
+                                        invoice_id,
+                                        product_id
+                                    }
+                                }
+
+                                return Promise.all([
+                                    this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
+                                                     SET quantity = quantity + $1,
+                                                         price    = $4
+                                                     WHERE product_id = $2
+                                                       AND position = $3 RETURNING *;`, [transferQuantity, product_id, to_position, transfer_price])
+                                        .then(({rows}) => {
+                                            if (rows.length === 0) {
+                                                // In-case can not update we will insert new one
+                                                return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
+                                                                        VALUES ($1, $2, $3, $4,
+                                                                                $5) RETURNING *`, [product_id, transferQuantity, transfer_price, to_position, from_position])
+                                                    .then(({rows}) => rows[0])
+                                                    .catch(e => {
+                                                        throw e
+                                                    })
+                                            } else {
+                                                return Promise.resolve(true)
+                                            }
+                                        }),
+                                    this.pool.query(updateTransferDetailQuery, Object.values(updateTransferDetailQueryParams)),
+                                ])
+                                    .then((r) => {
+                                        return this.pool.query(`UPDATE ${DATA_TABLES.INVOICE}
+                                                                SET status = '${INVOICE_STATUS.COMPLETED}'
+                                                                WHERE (SELECT count(*)
+                                                                       FROM ${DATA_TABLES.TRANSFER_DETAIL} tt
+                                                                       WHERE tt.invoice_id = $1
+                                                                         AND tt.transfer_status = '${TRANSFER_STATUS.PROCESSING}') =
+                                                                      0
+                                                                  AND id = $1
+                                                                  AND status = '${INVOICE_STATUS.PROCESSING}' RETURNING *;`, [invoice_id])
+                                            .then(({rows}) => {
+                                                return {invoice_id, product_id}
+                                            })
+                                            .catch(e => {
+                                                throw e
+                                            })
+                                    })
+                                    .catch(e => {
+                                        throw e
+                                    })
+                            }
+                        })
+                        .catch(e => {
+                            throw e
+                        })
+                )
+            });
+            return Promise.all(promises)
+                .then((r) => {
+                    return true;
+                })
+                .catch(e => {
+                    throw e
+                })
+        } else {
+            return Promise.resolve(true);
+        }
     }
 
     receiveTransferProduct(invoiceId = null, productId = null, transferQuantity = null) {
