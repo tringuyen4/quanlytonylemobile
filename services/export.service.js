@@ -1,11 +1,11 @@
 const ExcelJs = require('exceljs');
 const {
-    getAge,
     getAgeText,
     dateFormat,
     getJobText,
     getDeviceStatusText,
-    priceWithFormat, getBankName
+    priceWithFormat,
+    getPaymentMethod
 } = require("../utils/common.utils");
 const {notEmpty} = require("../utils/data.utils");
 
@@ -26,6 +26,7 @@ const INVOICE_EXPORT_CELLS = {
 
     PAYMENT_INVOICE_CODE: 'C9',
     PAYMENT_BANK_NAME: 'C10',
+    PAYMENT_PAYMENT_METHOD: 'D10',
     PAYMENT_BRANCH_NAME: 'C11',
     PAYMENT_BANK_ID: 'F10',
     PAYMENT_ACCOUNT_NAME: 'F11',
@@ -91,10 +92,11 @@ class ExportService {
 
     _writeInvoiceReportPaymentDetail(wb, paymentDetail) {
         const ws = wb.getWorksheet(1);
-        const {invoice_id, invoice_code, bank_id, bank_name, branch_name, account_name} = paymentDetail;
+        const {invoice_id, invoice_code, bank_id, bank_name, branch_name, account_name, payment_method} = paymentDetail;
         ws.getCell(INVOICE_EXPORT_CELLS.PAYMENT_INVOICE_CODE).value = invoice_code;
         ws.getCell(INVOICE_EXPORT_CELLS.PAYMENT_BANK_ID).value = bank_id;
-        ws.getCell(INVOICE_EXPORT_CELLS.PAYMENT_BANK_NAME).value = getBankName(bank_name);
+        ws.getCell(INVOICE_EXPORT_CELLS.PAYMENT_BANK_NAME).value = bank_name;
+        ws.getCell(INVOICE_EXPORT_CELLS.PAYMENT_PAYMENT_METHOD).value = getPaymentMethod(payment_method);
         ws.getCell(INVOICE_EXPORT_CELLS.PAYMENT_BRANCH_NAME).value = branch_name;
         ws.getCell(INVOICE_EXPORT_CELLS.PAYMENT_ACCOUNT_NAME).value = account_name;
         return wb;

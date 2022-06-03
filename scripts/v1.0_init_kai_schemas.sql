@@ -166,3 +166,10 @@ ALTER TABLE invoice
 
 ALTER TABLE quanlychi
     ADD COLUMN invoice_id INT NOT NULL DEFAULT 0;
+
+
+ALTER TABLE invoice_payment RENAME COLUMN bank_name TO payment_method;
+
+ALTER TABLE invoice_payment
+    ADD COLUMN bank_name VARCHAR NULL DEFAULT NULL;
+

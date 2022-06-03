@@ -1,4 +1,4 @@
-const APP_VERSION = '1.0.5';
+const APP_VERSION = '1.2.1';
 const AGE_PREFIX = '歳';
 const JAPANESE = {
     YEAR: '年',
@@ -40,14 +40,14 @@ const MOBILE_STATUSES = [
 ]
 
 
-const BANK = {
+const PAYMENT_METHOD = {
     ORDINARY_DEPOSIT: 'ORDINARY_DEPOSIT',
     CHECKS_DEPOSIT: 'CHECKS_DEPOSIT',
 }
 
-const BANKS = [
-    {label: '普通預金', value: BANK.ORDINARY_DEPOSIT},
-    {label: '当座預金', value: BANK.CHECKS_DEPOSIT},
+const PAYMENT_METHODS = [
+    {label: '普通預金', value: PAYMENT_METHOD.ORDINARY_DEPOSIT},
+    {label: '当座預金', value: PAYMENT_METHOD.CHECKS_DEPOSIT},
 ];
 
 
@@ -85,7 +85,7 @@ const REPORT_TYPE = {
     DATE_RANGE: 'DATE_RANGE'
 }
 
-const PAYMENT_METHOD = {
+const PAYMENT_TYPE = {
     CASH: 'tienmat',
     TRANSFER: 'chuyenkhoan',
 }
@@ -103,7 +103,7 @@ module.exports = {
     PRODUCT_SOURCE,
     REPORT_TYPE,
     TRANSFER_STATUS,
+    PAYMENT_TYPE,
     PAYMENT_METHOD,
-    BANK,
-    BANKS
+    PAYMENT_METHODS
 }

@@ -4,7 +4,7 @@ const {
     INVOICE_STATUS,
     PRODUCT_SOURCE,
     TRANSFER_STATUS,
-    PAYMENT_METHOD
+    PAYMENT_TYPE
 } = require("../constants/common.constant");
 const {notEmpty, isEmpty} = require("../utils/data.utils");
 const {ProductService} = require("./product.service");
@@ -118,7 +118,9 @@ class InvoicingService {
                                                 AND pd.customer_id = $2
                                               ORDER BY p.display_order ASC;`;
 
-                    const getInvoicePaymentQuery = `SELECT * FROM invoice_payment WHERE invoice_id = $1 LIMIT 1;`
+                    const getInvoicePaymentQuery = `SELECT *
+                                                    FROM ${DATA_TABLES.INVOICE_PAYMENT} 
+                                                    WHERE invoice_id = $1 LIMIT 1;`
 
                     return Promise.all([
                         this.pool.query(getCustomerQuery, [invoice.customer_id]),
@@ -846,7 +848,7 @@ class InvoicingService {
                                           total_money    = $3,
                                           type           = $4,
                                           status         = $5,
-                                          payment_type = $6
+                                          payment_type   = $6
                                       WHERE id = ${invoice_id} RETURNING *;`;
         }
 
@@ -1186,7 +1188,7 @@ class InvoicingService {
                 vitri: PRODUCT_SOURCE.SHOP_JP,
                 invoice_id
             }
-            if (payment_type === PAYMENT_METHOD.CASH) {
+            if (payment_type === PAYMENT_TYPE.CASH) {
                 return this.pool.query(`UPDATE quanlychi
                                         SET sotien            = $1,
                                             ngaytao           = $2,
@@ -1198,7 +1200,8 @@ class InvoicingService {
                     .then(({rows}) => {
                         if (rows.length === 0) {
                             return this.pool.query(`INSERT INTO quanlychi (sotien, ngaytao, mucdich, hinhthucthanhtoan, vitri, invoice_id)
-                                                    VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;`, Object.values(quanlichiParam))
+                                                    VALUES ($1, $2, $3, $4, $5,
+                                                            $6) RETURNING *;`, Object.values(quanlichiParam))
                                 .then(({rows}) => {
                                     return purchasingInvoice;
                                 })
@@ -1216,17 +1219,18 @@ class InvoicingService {
                 const promises = [];
                 promises.push(
                     this.pool.query(`UPDATE quanlychi
-                                        SET sotien            = $1,
-                                            ngaytao           = $2,
-                                            mucdich           = $3,
-                                            hinhthucthanhtoan = $4,
-                                            vitri             = $5,
-                                            invoice_id        = $6
-                                        WHERE invoice_id = ${invoice_id} RETURNING *;`, Object.values(quanlichiParam))
+                                     SET sotien            = $1,
+                                         ngaytao           = $2,
+                                         mucdich           = $3,
+                                         hinhthucthanhtoan = $4,
+                                         vitri             = $5,
+                                         invoice_id        = $6
+                                     WHERE invoice_id = ${invoice_id} RETURNING *;`, Object.values(quanlichiParam))
                         .then(({rows}) => {
                             if (rows.length === 0) {
                                 return this.pool.query(`INSERT INTO quanlychi (sotien, ngaytao, mucdich, hinhthucthanhtoan, vitri, invoice_id)
-                                                    VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;`, Object.values(quanlichiParam))
+                                                        VALUES ($1, $2, $3, $4, $5,
+                                                                $6) RETURNING *;`, Object.values(quanlichiParam))
                                     .then(({rows}) => {
                                         return purchasingInvoice;
                                     })
@@ -1248,22 +1252,30 @@ class InvoicingService {
                     bank_id: payment_detail.bank_id,
                     bank_name: payment_detail.bank_name,
                     branch_name: payment_detail.branch_name,
-                    account_name: payment_detail.account_name
+                    account_name: payment_detail.account_name,
+                    payment_method: payment_detail.payment_method,
                 }
 
                 promises.push(
-                    this.pool.query(`UPDATE invoice_payment
-                                        SET invoice_id            = $1,
-                                            invoice_code           = $2,
-                                            bank_id           = $3,
-                                            bank_name = $4,
-                                            branch_name             = $5,
-                                            account_name        = $6
-                                        WHERE invoice_id = ${invoice_id} RETURNING *;`, Object.values(paymentDetail))
+                    this.pool.query(`UPDATE ${DATA_TABLES.INVOICE_PAYMENT}
+                                     SET invoice_id     = $1,
+                                         invoice_code   = $2,
+                                         bank_id        = $3,
+                                         bank_name      = $4,
+                                         branch_name    = $5,
+                                         account_name   = $6,
+                                         payment_method = $7
+                                         WHERE invoice_id = ${invoice_id} RETURNING *;`, Object.values(paymentDetail))
                         .then(({rows}) => {
                             if (rows.length === 0) {
-                                return this.pool.query(`INSERT INTO invoice_payment (invoice_id, invoice_code, bank_id, bank_name, branch_name, account_name)
-                                                    VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;`, Object.values(paymentDetail))
+                                return this.pool.query(`INSERT INTO ${DATA_TABLES.INVOICE_PAYMENT} (invoice_id,
+                                                                                                    invoice_code,
+                                                                                                    bank_id, bank_name,
+                                                                                                    branch_name,
+                                                                                                    account_name,
+                                                                                                    payment_method)
+                                                        VALUES ($1, $2, $3, $4, $5, $6,
+                                                                $7) RETURNING *;`, Object.values(paymentDetail))
                                     .then(({rows}) => {
                                         return purchasingInvoice;
                                     })
