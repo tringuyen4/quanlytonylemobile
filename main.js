@@ -44,8 +44,8 @@ const {TransferringService} = require("./services/transferring.service");
 //     'postgres://ypdfdqvewxxgly:7ac1504434e43a831ed167ce89a7e5069f7b549cced29bdaab42e50fc7b5297c@ec2-3-227-15-75.compute-1.amazonaws.com:5432/ddoocbjabks5u0'
 
 var connectionString =
-    'postgres://ypdfdqvewxxgly:7ac1504434e43a831ed167ce89a7e5069f7b549cced29bdaab42e50fc7b5297c@ec2-3-227-15-75.compute-1.amazonaws.com:5432/ddoocbjabks5u0'
-
+    // 'postgres://ypdfdqvewxxgly:7ac1504434e43a831ed167ce89a7e5069f7b549cced29bdaab42e50fc7b5297c@ec2-3-227-15-75.compute-1.amazonaws.com:5432/ddoocbjabks5u0'
+'postgres://vqhomjbphjzlvi:ac0bd07cf698a232beb8f694c84a600799c67c0dc348891abb0e21c0df600a2b@ec2-3-226-163-72.compute-1.amazonaws.com:5432/d6vihjju4k4e6q'
 
 // var connectionString = 'postgres://postgres:12345678@localhost:5432/sellmobile_v2'
 
