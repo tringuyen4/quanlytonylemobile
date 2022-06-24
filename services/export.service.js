@@ -11,7 +11,8 @@ const {notEmpty} = require("../utils/data.utils");
 
 const EXPORT_TEMPLATES = {
     INVOICE: './exports/invoice_template.xlsx',
-    TRANSFER_PAYMENT_INVOICE: './exports/transfer_payment_invoice_template.xlsx'
+    TRANSFER_PAYMENT_INVOICE: './exports/transfer_payment_invoice_template.xlsx',
+    NOTE: './exports/xuat_ban_chu_thich.xlsx'
 }
 
 const INVOICE_EXPORT_CELLS = {
@@ -48,6 +49,22 @@ const INVOICE_EXPORT_CELLS = {
 
 class ExportService {
     constructor() {
+    }
+
+    async noteReport(notereportDetail) {
+        let noteTemplate = await this._readTemplate(EXPORT_TEMPLATES.NOTE);
+        const {reportHeader, summary, products} = notereportDetail;
+        // Write fixed heading
+        noteTemplate = this._writeNoteReportHeader(noteTemplate, reportHeader);
+        // Write devices list
+        noteTemplate = this._writeNoteReportItems(noteTemplate, products);
+        // Write the summary values
+        const summaryRowIndex = INVOICE_EXPORT_CELLS.MOBILE_TABLE_START_ROW + (notEmpty(products) ? products.length : 1);
+        noteTemplate = this._writeNoteReportSummary(invoiceTemplate, summary, summaryRowIndex);
+        // Write workbook as a arrayBuffer
+        return noteTemplate.xlsx.writeBuffer().then((buffer) => buffer).catch((e) => {
+            console.log('>>> ExportService:noteReport Error: ', e);
+        });
     }
 
     /**
@@ -122,7 +139,32 @@ class ExportService {
         return wb;
     }
 
+    _writeNoteReportHeader(wb, noteHeader) {
+        const ws = wb.getWorksheet(1);
+        const {date, name} = noteHeader;
+        ws.getCell('E2').value = date;
+        ws.getCell('B10').value = name;
+        // ws.getCell(INVOICE_EXPORT_CELLS.PHONE).value = phone;
+        // ws.getCell(INVOICE_EXPORT_CELLS.ADDRESS).value = address;
+        // ws.getCell(INVOICE_EXPORT_CELLS.JOB).value = getJobText(job);
+        // ws.getCell(INVOICE_EXPORT_CELLS.AGE).value = getAgeText(birthday);
+        // // ws.getCell(INVOICE_EXPORT_CELLS.SALE_DATE).value = dateFormat(sale_date);
+        // ws.getCell(INVOICE_EXPORT_CELLS.BIRTHDAY).value = dateFormat(birthday);
+        return wb;
+    }
+
     _writeInvoiceReportSummary(wb, summaryData, summaryRowIndex = INVOICE_EXPORT_CELLS.MOBILE_TABLE_START_ROW + 1) {
+        const ws = wb.getWorksheet(1);
+        const {quantity, total_money, sale_date} = summaryData;
+        const quantityAddress = `${INVOICE_EXPORT_CELLS.SUMMARY_QUANTITY_COLUMN}${summaryRowIndex}`;
+        ws.getCell(quantityAddress).value = quantity;
+        const totalMoneyAddress = `${INVOICE_EXPORT_CELLS.SUMMARY_MONEY_COLUMN}${summaryRowIndex}`;
+        ws.getCell(totalMoneyAddress).value = priceWithFormat(total_money);
+        ws.getCell(INVOICE_EXPORT_CELLS.SALE_DATE).value = dateFormat(sale_date);
+        return wb;
+    }
+
+    _writeNoteReportSummary(wb, summaryData, summaryRowIndex = INVOICE_EXPORT_CELLS.MOBILE_TABLE_START_ROW + 1) {
         const ws = wb.getWorksheet(1);
         const {quantity, total_money, sale_date} = summaryData;
         const quantityAddress = `${INVOICE_EXPORT_CELLS.SUMMARY_QUANTITY_COLUMN}${summaryRowIndex}`;
@@ -185,6 +227,57 @@ class ExportService {
         return wb;
     }
 
+    _writeNoteReportItems(wb, mobiles = [], itemsRowIndex = INVOICE_EXPORT_CELLS.MOBILE_TABLE_START_ROW) {
+        const ws = wb.getWorksheet(1);
+        if (notEmpty(mobiles)) {
+
+            // Prepare the Rows layout, duplicate the rows
+            if (mobiles.length > 1) {
+                ws.duplicateRow(itemsRowIndex, mobiles.length - 1, true);
+            }
+
+            // Write data to cell
+            mobiles.forEach((mobile, index) => {
+                const rowIndex = itemsRowIndex + index;
+                const noIndex = index + 1;
+                const currentRow = ws.getRow(rowIndex);
+                const {name, color, status, imei, price} = mobile;
+                currentRow.getCell(`${INVOICE_EXPORT_CELLS.NO_COLUMN}`).value = noIndex;
+                currentRow.getCell(`${INVOICE_EXPORT_CELLS.MOBILE_NAME_COLUMN}`).value = name;
+                currentRow.getCell(`${INVOICE_EXPORT_CELLS.MOBILE_COLOR_COLUMN}`).value = color;
+                currentRow.getCell(`${INVOICE_EXPORT_CELLS.MOBILE_STATUS_COLUMN}`).value = getDeviceStatusText(status);
+                currentRow.getCell(`${INVOICE_EXPORT_CELLS.MOBILE_IMEI_COLUMN}`).value = imei;
+                currentRow.getCell(`${INVOICE_EXPORT_CELLS.MOBILE_PRICE_COLUMN}`).value = priceWithFormat(price);
+                currentRow.commit();
+            });
+
+            // Merge cell: Name, Price
+            if (mobiles.length > 1) {
+                for (let i = 1; i < mobiles.length; i++) {
+                    // Merge cell name
+                    const defaultCellName = `${INVOICE_EXPORT_CELLS.MOBILE_NAME_COLUMN}${itemsRowIndex + i}`;
+                    const alterCellName = `${INVOICE_EXPORT_CELLS.MOBILE_NAME_ALTER_COLUMN}${itemsRowIndex + i}`;
+                    const mergeCellName = `${defaultCellName}:${alterCellName}`;
+                    if (!ws.getCell(mergeCellName).isMerged) {
+                        ws.getCell(alterCellName).merge(ws.getCell(defaultCellName));
+                    }
+
+                    // Merge cell price
+                    const defaultCellPrice = `${INVOICE_EXPORT_CELLS.MOBILE_PRICE_COLUMN}${itemsRowIndex + i}`;
+                    const alterCellPrice = `${INVOICE_EXPORT_CELLS.MOBILE_PRICE_ALTER_COLUMN}${itemsRowIndex + i}`;
+                    const mergeCellPrice = `${defaultCellPrice}:${alterCellPrice}`;
+                    if (!ws.getCell(mergeCellPrice).isMerged) {
+                        ws.getCell(alterCellPrice).merge(ws.getCell(defaultCellPrice));
+                        const mergeCellPriceBorder = ws.getCell(mergeCellPrice).border;
+                        if (notEmpty(mergeCellPriceBorder)) {
+                            mergeCellPriceBorder.right = {style: 'thin'};
+                        }
+                    }
+                }
+            }
+        }
+        return wb;
+    }
 
     async _readTemplate(templatePath) {
         const templateFile = notEmpty(templatePath) ? templatePath : EXPORT_TEMPLATES.INVOICE;

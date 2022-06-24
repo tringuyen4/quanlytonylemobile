@@ -4,17 +4,17 @@ var app = express();
 var mysql = require('mysql');
 var bodyParser = require('body-parser');
 var cors = require('cors');
-const {Pool} = require('pg')
-const {KAI_SERVICES} = require("./constants/kai-service.constants");
-const {ReplicateService} = require("./services/replicate.service");
+const { Pool } = require('pg')
+const { KAI_SERVICES } = require("./constants/kai-service.constants");
+const { ReplicateService } = require("./services/replicate.service");
 const {
     KAI_CONNECTION_STRING,
     CONNECTION_STRING,
     DATA_REPLICATION_KEY,
     DATA_TABLES, CUSTOMER
 } = require("./constants/data.constant");
-const {HTTP_STATUSES} = require("./constants/http.constant");
-const {notEmpty, isEmpty} = require("./utils/data.utils");
+const { HTTP_STATUSES } = require("./constants/http.constant");
+const { notEmpty, isEmpty } = require("./utils/data.utils");
 const {
     INVOICE_TYPE,
     PRODUCT_SOURCE,
@@ -23,13 +23,13 @@ const {
     APP_VERSION,
     PAYMENT_TYPE
 } = require("./constants/common.constant");
-const {InvoicingService} = require("./services/invoicing.service");
-const {ProductService} = require("./services/product.service");
-const {CustomerService} = require("./services/customer.service");
-const {StatisticsService} = require("./services/statistics.service");
-const {ExportService} = require("./services/export.service");
-const {ReportService} = require("./services/report.service");
-const {TransferringService} = require("./services/transferring.service");
+const { InvoicingService } = require("./services/invoicing.service");
+const { ProductService } = require("./services/product.service");
+const { CustomerService } = require("./services/customer.service");
+const { StatisticsService } = require("./services/statistics.service");
+const { ExportService } = require("./services/export.service");
+const { ReportService } = require("./services/report.service");
+const { TransferringService } = require("./services/transferring.service");
 
 //MySQL connection
 // var connection = mysql.createConnection({
@@ -45,7 +45,7 @@ const {TransferringService} = require("./services/transferring.service");
 
 var connectionString =
     // 'postgres://ypdfdqvewxxgly:7ac1504434e43a831ed167ce89a7e5069f7b549cced29bdaab42e50fc7b5297c@ec2-3-227-15-75.compute-1.amazonaws.com:5432/ddoocbjabks5u0'
-'postgres://vqhomjbphjzlvi:ac0bd07cf698a232beb8f694c84a600799c67c0dc348891abb0e21c0df600a2b@ec2-3-226-163-72.compute-1.amazonaws.com:5432/d6vihjju4k4e6q'
+    'postgres://vqhomjbphjzlvi:ac0bd07cf698a232beb8f694c84a600799c67c0dc348891abb0e21c0df600a2b@ec2-3-226-163-72.compute-1.amazonaws.com:5432/d6vihjju4k4e6q'
 
 // var connectionString = 'postgres://postgres:12345678@localhost:5432/sellmobile_v2'
 
@@ -82,7 +82,7 @@ const statisticsService = new StatisticsService(pool);
 const reportService = new ReportService(pool);
 const exportService = new ExportService();
 
-module.exports = {pool}
+module.exports = { pool }
 
 //Body-parser configuration
 app.use(bodyParser.json());       // to support JSON-encoded bodies
@@ -458,7 +458,7 @@ app.get('/getkhachhang/', function (req, res) {
 });
 
 app.get('/getkhachhangvn/', function (req, res) {
- 
+
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
@@ -471,7 +471,7 @@ app.get('/getkhachhangvn/', function (req, res) {
 });
 
 app.get('/getkhachhangnhat/', function (req, res) {
- 
+
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Credentials", true);
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
@@ -1342,7 +1342,7 @@ app.post(KAI_SERVICES.CUSTOMERS, function (req, res) {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {name_vietnamese, name_japanese, birthday, age, address, phone, job} = req.body;
+    const { name_vietnamese, name_japanese, birthday, age, address, phone, job } = req.body;
     customerService.addCustomer({
         name_vietnamese,
         name_japanese,
@@ -1369,7 +1369,7 @@ app.put(KAI_SERVICES.CUSTOMERS, function (req, res) {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id, name_vietnamese, name_japanese, birthday, age, address, phone, job} = req.body;
+    const { id, name_vietnamese, name_japanese, birthday, age, address, phone, job } = req.body;
 
     customerService.updateCustomer(id, {
         name_vietnamese,
@@ -1417,7 +1417,7 @@ app.post(`${KAI_SERVICES.CUSTOMERS}/search`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {search_type, query} = req.body;
+    const { search_type, query } = req.body;
 
     customerService.searchCustomer(search_type, query)
         .then((customers) => {
@@ -1462,7 +1462,7 @@ app.get(`${KAI_SERVICES.PRODUCTS}/customer/:id`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id} = req.params;
+    const { id } = req.params;
 
     productService.getCustomerProducts(id)
         .then(products => {
@@ -1714,7 +1714,7 @@ app.post(`${KAI_SERVICES.PRODUCTS}`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {imei, name, color, status, quantity, price, position, source, product_group_id, estimated_price} = req.body;
+    const { imei, name, color, status, quantity, price, position, source, product_group_id, estimated_price } = req.body;
 
     productService.insertProduct({
         imei, name, color, status, quantity, price, position, source, product_group_id, estimated_price
@@ -1737,7 +1737,7 @@ app.post(`${KAI_SERVICES.PRODUCTS}/search`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {ids, position} = req.body;
+    const { ids, position } = req.body;
     productService.getProductByIds(ids, position)
         .then(listProducts => {
             return res.status(HTTP_STATUSES.OK).json(listProducts)
@@ -1809,7 +1809,7 @@ app.delete(`${KAI_SERVICES.PRODUCTS}/:id`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id} = req.params;
+    const { id } = req.params;
 
     productService.deleteProduct(id)
         .then(r => {
@@ -1837,7 +1837,7 @@ app.post(`${KAI_SERVICES.FOR_SALE_INVOICES}`, (req, res) => {
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
-    const {products, quantity, total_money, sale_date} = req.body;
+    const { products, quantity, total_money, sale_date } = req.body;
 
     invoicingService.forSaleInvoice({
         quantity,
@@ -1905,11 +1905,11 @@ app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/cancel/:id`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id} = req.params;
+    const { id } = req.params;
 
     invoicingService.cancelForSaleInvoice(id)
         .then(isSuccess => {
-            return res.status(HTTP_STATUSES.OK).json({success: isSuccess});
+            return res.status(HTTP_STATUSES.OK).json({ success: isSuccess });
         })
         .catch(e => {
             console.log(`>>> ERROR: Can not cancel the invoice with id = ${id}. ---> error: `, e);
@@ -1928,12 +1928,12 @@ app.post(`${KAI_SERVICES.FOR_SALE_INVOICES}/approve/:id`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id} = req.params;
-    const {sale_date, quantity, total_money, products} = req.body;
+    const { id } = req.params;
+    const { sale_date, quantity, total_money, products } = req.body;
 
-    invoicingService.approveForSaleInvoice({sale_date, quantity, total_money, products}, id)
+    invoicingService.approveForSaleInvoice({ sale_date, quantity, total_money, products }, id)
         .then(isSuccess => {
-            return res.status(HTTP_STATUSES.OK).json({success: isSuccess});
+            return res.status(HTTP_STATUSES.OK).json({ success: isSuccess });
         })
         .catch(e => {
             console.log(`>>> ERROR: Can not cancel the invoice with id = ${id}. ---> error: `, e);
@@ -1952,7 +1952,7 @@ app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/detail/:id`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id} = req.params;
+    const { id } = req.params;
 
     invoicingService.getForSaleInvoiceDetail(id)
         .then((invoiceDetail) => {
@@ -1975,7 +1975,7 @@ app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/kai/detail/:id`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id} = req.params;
+    const { id } = req.params;
 
     invoicingService.getForSaleInvoiceDetail(id, PRODUCT_SOURCE.KAI)
         .then((invoiceDetail) => {
@@ -1998,7 +1998,7 @@ app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/shop-jp/detail/:id`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id} = req.params;
+    const { id } = req.params;
 
     invoicingService.getForSaleInvoiceDetail(id, PRODUCT_SOURCE.SHOP_JP)
         .then((invoiceDetail) => {
@@ -2021,7 +2021,7 @@ app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/shop-vn/detail/:id`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id} = req.params;
+    const { id } = req.params;
 
     invoicingService.getForSaleInvoiceDetail(id, PRODUCT_SOURCE.SHOP_VN)
         .then((invoiceDetail) => {
@@ -2044,7 +2044,7 @@ app.get(`${KAI_SERVICES.FOR_SALE_INVOICES}/warehouse/detail/:id`, (req, res) => 
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id} = req.params;
+    const { id } = req.params;
 
     invoicingService.getForSaleInvoiceDetail(id, PRODUCT_SOURCE.WAREHOUSE)
         .then((invoiceDetail) => {
@@ -2091,7 +2091,7 @@ app.get(`${KAI_SERVICES.PURCHASING_INVOICES}/:id`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id} = req.params;
+    const { id } = req.params;
     if (notEmpty(id)) {
         invoicingService.getPurchasingInvoiceDetail(id)
             .then((invoiceDetail) => {
@@ -2231,6 +2231,26 @@ app.post(`${KAI_SERVICES.PURCHASING_INVOICES}/save-and-report`, (req, res) => {
         })
 });
 
+// note-save-and-report
+app.post('/note-save-and-report', (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+    var postData = req.body;
+
+    exportService.noteReport(postData)
+        .then((bufferResponse) => {
+            console.log('>>> Generate Invoice Report Finished! Customer Name: ');
+            res.end(bufferResponse);
+        })
+        .catch(e => {
+            console.log('>>>> Can not export purchasing invoice for Customer with name: ', reportData.reportHeader.name_vietnamese);
+            res.end(null);
+        });
+})
+
 // Delete Purchasing Invoice
 app.delete(`${KAI_SERVICES.PURCHASING_INVOICES}/:id`, (req, res) => {
     res.header("Access-Control-Allow-Origin", "*");
@@ -2239,7 +2259,7 @@ app.delete(`${KAI_SERVICES.PURCHASING_INVOICES}/:id`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id} = req.params;
+    const { id } = req.params;
 
     invoicingService.deletePurchasingInvoice(id)
         .then(result => {
@@ -2262,7 +2282,7 @@ app.get(`${KAI_SERVICES.PURCHASING_INVOICES}/report/:id`, (req, res) => {
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
 
-    const {id} = req.params;
+    const { id } = req.params;
     if (notEmpty(id)) {
         reportService.kaiPurchasingInvoiceReport(id)
             .then(reportData => {
@@ -2320,7 +2340,7 @@ app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/approve/:id`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id} = req.params;
+    const { id } = req.params;
     invoicingService.approveTransferInvoice(id)
         .then((result) => {
             return res.status(HTTP_STATUSES.NO_CONTENT).json(result)
@@ -2341,7 +2361,7 @@ app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/approve/:id/:product_id`, (req, r
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
-    const {id, product_id} = req.params;
+    const { id, product_id } = req.params;
     invoicingService.approveTransferInvoiceItem(id, product_id)
         .then((result) => {
             return res.status(HTTP_STATUSES.NO_CONTENT).json(result);
@@ -2362,7 +2382,7 @@ app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/cancel/:id`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id} = req.params;
+    const { id } = req.params;
     invoicingService.cancelTransferInvoice(id)
         .then((result) => {
             return res.status(HTTP_STATUSES.NO_CONTENT).json(result)
@@ -2383,7 +2403,7 @@ app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/cancel/:id/:product_id`, (req, re
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
-    const {id, product_id} = req.params;
+    const { id, product_id } = req.params;
     invoicingService.cancelTransferInvoiceItem(id, product_id)
         .then((result) => {
             return res.status(HTTP_STATUSES.NO_CONTENT).json(result);
@@ -2598,7 +2618,7 @@ app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/kai/detail/:id`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id} = req.params;
+    const { id } = req.params;
 
     invoicingService.getTransferringInvoiceDetail(id, PRODUCT_SOURCE.KAI)
         .then((invoiceDetail) => {
@@ -2621,7 +2641,7 @@ app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/shop-vn/detail/:id`, (req, res) =
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id} = req.params;
+    const { id } = req.params;
 
     invoicingService.getTransferringInvoiceDetail(id, PRODUCT_SOURCE.SHOP_VN)
         .then((invoiceDetail) => {
@@ -2644,7 +2664,7 @@ app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/shop-jp/detail/:id`, (req, res) =
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id} = req.params;
+    const { id } = req.params;
 
     invoicingService.getTransferringInvoiceDetail(id, PRODUCT_SOURCE.SHOP_JP)
         .then((invoiceDetail) => {
@@ -2667,7 +2687,7 @@ app.get(`${KAI_SERVICES.TRANSFERRING_INVOICES}/warehouse/detail/:id`, (req, res)
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id} = req.params;
+    const { id } = req.params;
 
     invoicingService.getTransferringInvoiceDetail(id, PRODUCT_SOURCE.WAREHOUSE)
         .then((invoiceDetail) => {
@@ -2919,7 +2939,7 @@ app.post(`${KAI_SERVICES.PRODUCT_GROUP}`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {name} = req.body;
+    const { name } = req.body;
 
     productService.createProductGroup(name)
         .then((product_group) => {
@@ -2942,9 +2962,9 @@ app.put(`${KAI_SERVICES.PRODUCT_GROUP}`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id, name, sort_order} = req.body;
+    const { id, name, sort_order } = req.body;
 
-    productService.updateProductGroup({id, name, sort_order})
+    productService.updateProductGroup({ id, name, sort_order })
         .then((product_group) => {
             return res.status(HTTP_STATUSES.OK).json(product_group);
         })
@@ -2966,7 +2986,7 @@ app.delete(`${KAI_SERVICES.PRODUCT_GROUP}/:id`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {id} = req.params;
+    const { id } = req.params;
 
     productService.deleteProductGroup(id)
         .then((product_group) => {
@@ -3276,7 +3296,7 @@ app.put(`${KAI_SERVICES.TRANSFERRING}/receive`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {invoice_id, product_id, quantity} = req.body;
+    const { invoice_id, product_id, quantity } = req.body;
 
     transferringService.receiveTransferProduct(invoice_id, product_id, quantity)
         .then((result) => {
@@ -3320,7 +3340,7 @@ app.get(`${KAI_SERVICES.TRANSFERRING}/:invoice_id/:product_id`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {invoice_id, product_id} = req.params;
+    const { invoice_id, product_id } = req.params;
 
     transferringService.transferProduct(invoice_id, product_id)
         .then((result) => {
@@ -3342,7 +3362,7 @@ app.get(`${KAI_SERVICES.TRANSFERRING}/lost/:invoice_id/:product_id`, (req, res) 
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {invoice_id, product_id} = req.params;
+    const { invoice_id, product_id } = req.params;
 
     transferringService.transferProduct(invoice_id, product_id, true)
         .then((result) => {
@@ -3364,7 +3384,7 @@ app.get(`${KAI_SERVICES.TRANSFERRING}/cancel/:invoice_id/:product_id`, (req, res
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {invoice_id, product_id} = req.params;
+    const { invoice_id, product_id } = req.params;
 
     transferringService.cancelTransferProduct(invoice_id, product_id)
         .then((result) => {
@@ -3389,7 +3409,7 @@ app.post(`${KAI_SERVICES.STATISTICS}`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {type, from_date, to_date} = req.body;
+    const { type, from_date, to_date } = req.body;
     statisticsService.getKaiStatistics(type, from_date, to_date)
         .then((statistics) => {
             return res.status(HTTP_STATUSES.OK).json(statistics)
@@ -3411,7 +3431,7 @@ app.get(`${KAI_SERVICES.APP_INFO}`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    return res.status(HTTP_STATUSES.OK).json({version: APP_VERSION});
+    return res.status(HTTP_STATUSES.OK).json({ version: APP_VERSION });
 
 });
 
@@ -3425,7 +3445,7 @@ app.post(KAI_SERVICES.REPLICATE, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const {secret_key} = req.body;
+    const { secret_key } = req.body;
     if (secret_key === DATA_REPLICATION_KEY) {
         const replicateService = new ReplicateService(KAI_CONNECTION_STRING, CONNECTION_STRING);
         replicateService.execute().then(r => {
