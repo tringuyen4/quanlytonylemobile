@@ -783,6 +783,7 @@ class InvoicingService {
         if (notEmpty(forSaleInvoiceProducts)) {
             const promises = [];
             forSaleInvoiceProducts.forEach((productItem) => {
+                // $2 WHERE NOT EXISTS(
                 // For each product we run query to insert to invoice_detail and run other query to update quantity of product
                 const insertInvoiceDetailQuery = `INSERT INTO ${DATA_TABLES.INVOICE_DETAIL} (invoice_id, product_id, quantity, price)
                                                   SELECT ${invoice_id},
