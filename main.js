@@ -646,7 +646,7 @@ app.post('/getdanhsachdonhangvasanphamquanlymobileid/', function (req, res) {
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
 
-    pool.query('select * from danhsachdonhang inner join danhsachsanphamdaban on danhsachdonhang.transactionkey = danhsachsanphamdaban.transactionkey where danhsachdonhang.vitri=($1) and madonhang = ($2) order by madonhang desc', postData, function (error, results, fields) {
+    pool.query('select * from danhsachdonhang inner join danhsachsanphamdaban on danhsachdonhang.transactionkey = danhsachsanphamdaban.transactionkey inner join product on danhsachsanphamdaban.productid = Cast(product.id as varchar) where danhsachdonhang.vitri = ($1) and madonhang = ($2) order by madonhang desc', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
     });
