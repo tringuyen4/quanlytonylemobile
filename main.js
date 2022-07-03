@@ -639,6 +639,19 @@ app.post('/getdanhsachdonhangquanlymobileid/', function (req, res) {
     });
 });
 
+app.post('/getdanhsachdonhangvasanphamquanlymobileid/', function (req, res) {
+    var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+
+    pool.query('select * from danhsachdonhang inner join danhsachsanphamdaban on danhsachdonhang.transactionkey = danhsachsanphamdaban.transactionkey where danhsachdonhang.vitri=($1) and madonhang = ($2) order by madonhang desc', postData, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
+
 app.post('/getdanhsachdonhangquanlymobiletransaction/', function (req, res) {
     var postData = req.body;
     res.header("Access-Control-Allow-Origin", "*");
@@ -1729,6 +1742,31 @@ app.post(`${KAI_SERVICES.PRODUCTS}`, (req, res) => {
             });
         });
 });
+
+
+app.post(`${KAI_SERVICES.CREAT_PRODUCTS}`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const { imei, name, color, status, quantity, price, position, source, product_group_id, estimated_price } = req.body;
+
+    productService.createProduct({
+        imei, name, color, status, quantity, price, position, source, product_group_id, estimated_price
+    })
+        .then(productDetail => {
+            return res.status(HTTP_STATUSES.OK).json(productDetail)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not insert product --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not insert product for`
+            });
+        });
+});
+
 
 app.post(`${KAI_SERVICES.PRODUCTS}/search`, (req, res) => {
     res.header("Access-Control-Allow-Origin", "*");

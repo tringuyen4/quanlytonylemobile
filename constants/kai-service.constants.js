@@ -9,7 +9,8 @@ const KAI_SERVICES = {
     FOR_SALE_INVOICES: '/invoices/for-sale',
     STATISTICS: '/statistics',
     TRANSFERRING: '/transferring',
-    PRODUCT_GROUP: '/product-groups'
+    PRODUCT_GROUP: '/product-groups',
+    CREAT_PRODUCTS: '/createproducts',
 }
 
 module.exports = {
