@@ -2335,17 +2335,29 @@ app.get(`${KAI_SERVICES.PURCHASING_INVOICES}/report/:id`, (req, res) => {
 
     const { id } = req.params;
     if (notEmpty(id)) {
-        reportService.kaiPurchasingInvoiceReport(id)
+        reportService.kaiPurchasingInvoiceReportTransferPayment(id)
             .then(reportData => {
-                exportService.invoiceReport(reportData)
-                    .then((bufferResponse) => {
-                        console.log('>>> Generate Invoice Report Finished! Customer Name: ', reportData.reportHeader.name_vietnamese);
-                        res.end(bufferResponse);
-                    })
-                    .catch(e => {
-                        console.log('>>>> Can not export purchasing invoice for Customer with name: ', reportData.reportHeader.name_vietnamese);
-                        res.end(null);
-                    });
+                if (notEmpty(reportData.paymentDetail)) {
+                    exportService.invoiceReportTransferPayment(reportData)
+                        .then((bufferResponse) => {
+                            console.log('>>> Generate Invoice Report Finished! Customer Name: ', reportData.reportHeader.name_vietnamese);
+                            res.end(bufferResponse);
+                        })
+                        .catch(e => {
+                            console.log('>>>> Can not export purchasing invoice for Customer with name: ', reportData.reportHeader.name_vietnamese);
+                            res.end(null);
+                        });
+                } else {
+                    exportService.invoiceReport(reportData)
+                        .then((bufferResponse) => {
+                            console.log('>>> Generate Invoice Report Finished! Customer Name: ', reportData.reportHeader.name_vietnamese);
+                            res.end(bufferResponse);
+                        })
+                        .catch(e => {
+                            console.log('>>>> Can not export purchasing invoice for Customer with name: ', reportData.reportHeader.name_vietnamese);
+                            res.end(null);
+                        });
+                }
             })
             .catch(e => {
                 console.log('>>>> Can not export purchasing invoice for Customer with invoice id: ', id);
