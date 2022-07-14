@@ -737,7 +737,7 @@ app.get('/getdanhsachsanphamdabanquanlymobile/', function (req, res) {
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     console.log(req);
-    pool.query(`select * from danhsachsanphamdaban where vitri='WAREHOUSE' order by ngayban desc`, function (error, results, fields) {
+    pool.query(`select * from danhsachsanphamdaban left join danhsachdonhang on danhsachsanphamdaban.transactionkey = danhsachdonhang.transactionkey left join product on danhsachsanphamdaban.productid = CAST(product.id as TEXT) where danhsachsanphamdaban.vitri='WAREHOUSE' order by danhsachsanphamdaban.ngayban desc`, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
     });
@@ -750,7 +750,7 @@ app.get('/getdanhsachsanphamdabanquanlymobilejp/', function (req, res) {
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     console.log(req);
-    pool.query(`select * from danhsachsanphamdaban where vitri='SHOP_JP' order by ngayban desc`, function (error, results, fields) {
+    pool.query(`select * from danhsachsanphamdaban left join danhsachdonhang on danhsachsanphamdaban.transactionkey = danhsachdonhang.transactionkey left join product on danhsachsanphamdaban.productid = CAST(product.id as TEXT) where danhsachsanphamdaban.vitri='SHOP_JP' order by danhsachsanphamdaban.ngayban desc`, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
     });
@@ -763,7 +763,7 @@ app.get('/getdanhsachsanphamdabanquanlymobilevn/', function (req, res) {
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     console.log(req);
-    pool.query(`select * from danhsachsanphamdaban where vitri='SHOP_VN' order by ngayban desc`, function (error, results, fields) {
+    pool.query(`select * from danhsachsanphamdaban left join danhsachdonhang on danhsachsanphamdaban.transactionkey = danhsachdonhang.transactionkey left join product on danhsachsanphamdaban.productid = CAST(product.id as TEXT) where danhsachsanphamdaban.vitri='SHOP_VN' order by danhsachsanphamdaban.ngayban desc`, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
     });
