@@ -86,6 +86,7 @@ class InvoicingService {
                                             i.sale_date,
                                             i.total_money,
                                             i.payment_type,
+                                            i.locked,
                                             pd.customer_id
                                      FROM ${DATA_TABLES.INVOICE} i,
                                           ${DATA_TABLES.PURCHASING_DETAIL} pd
@@ -134,6 +135,7 @@ class InvoicingService {
                                 payment_type: invoice.payment_type,
                                 total_money: invoice.total_money,
                                 sale_date: invoice.sale_date,
+                                locked: invoice.locked,
                                 customer: customerResult.rows.length > 0 ? customerResult.rows[0] : null,
                                 products: productsResult.rows.length > 0 ? productsResult.rows : [],
                                 payment_detail: (invoicePaymentDetail.rows.length > 0) ? invoicePaymentDetail.rows[0] : null,
@@ -148,6 +150,32 @@ class InvoicingService {
             })
             .catch(e => {
                 throw e;
+            })
+    }
+
+    lockPurchasingInvoice(invoiceId = 0) {
+        const lockPurchasingInvoiceQuery = `UPDATE ${DATA_TABLES.INVOICE}
+                                         SET locked = true
+                                         WHERE id = ${invoiceId} RETURNING *;`;
+        return this.pool.query(lockPurchasingInvoiceQuery)
+            .then(({rows}) => {
+                return rows.length > 0 ? rows[0] : null;
+            })
+            .catch(e => {
+                throw e
+            })
+    }
+
+    unlockPurchasingInvoice(invoiceId = 0) {
+        const lockPurchasingInvoiceQuery = `UPDATE ${DATA_TABLES.INVOICE}
+                                         SET locked = false
+                                         WHERE id = ${invoiceId} AND locked = true RETURNING *;`;
+        return this.pool.query(lockPurchasingInvoiceQuery)
+            .then(({rows}) => {
+                return rows.length > 0 ? rows[0] : null;
+            })
+            .catch(e => {
+                throw e
             })
     }
 

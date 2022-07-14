@@ -2326,6 +2326,50 @@ app.delete(`${KAI_SERVICES.PURCHASING_INVOICES}/:id`, (req, res) => {
 
 });
 
+app.get(`${KAI_SERVICES.PURCHASING_INVOICES}/lock/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const { id } = req.params;
+
+    invoicingService.lockPurchasingInvoice(id)
+        .then(result => {
+            return res.status(HTTP_STATUSES.OK).json(result);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not lock purchasing invoice. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not lock purchasing invoice.'
+            })
+        })
+
+});
+
+app.get(`${KAI_SERVICES.PURCHASING_INVOICES}/unlock/:id`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const { id } = req.params;
+
+    invoicingService.unlockPurchasingInvoice(id)
+        .then(result => {
+            return res.status(HTTP_STATUSES.OK).json(result);
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not unlock purchasing invoice. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not unlock purchasing invoice.'
+            })
+        })
+
+});
+
 // Get Purchasing Invoices detail
 app.get(`${KAI_SERVICES.PURCHASING_INVOICES}/report/:id`, (req, res) => {
     res.header("Access-Control-Allow-Origin", "*");

@@ -173,3 +173,5 @@ ALTER TABLE invoice_payment RENAME COLUMN bank_name TO payment_method;
 ALTER TABLE invoice_payment
     ADD COLUMN bank_name VARCHAR NULL DEFAULT NULL;
 
+ALTER TABLE invoice
+    ADD COLUMN locked BOOLEAN NOT NULL DEFAULT false;
