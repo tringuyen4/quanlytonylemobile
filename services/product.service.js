@@ -1,12 +1,18 @@
-const { notEmpty } = require("../utils/data.utils");
-const { DATA_TABLES, PRODUCT } = require("../constants/data.constant");
-const { rows } = require("pg/lib/defaults");
+const {notEmpty, isEmpty} = require("../utils/data.utils");
+const {DATA_TABLES, PRODUCT} = require("../constants/data.constant");
+const {rows} = require("pg/lib/defaults");
 
 class ProductService {
     constructor(dbPool) {
         this.pool = dbPool;
     }
 
+    /**
+     * Get customer products
+     * @param customer_id
+     * @param invoice_id
+     * @returns {*}
+     */
     getCustomerProducts(customer_id = null, invoice_id = null) {
         let queryCondition = `i.id = id.invoice_id AND i.id = pd.invoice_id`;
         if (notEmpty(customer_id)) {
@@ -42,12 +48,17 @@ class ProductService {
                           AND p.id = customerPurchase.product_id
                           AND ps.quantity > 0;`;
         return this.pool.query(queryStr)
-            .then(({ rows }) => rows)
+            .then(({rows}) => rows)
             .catch(e => {
                 throw e;
             });
     }
 
+    /**
+     * Get all products or by position
+     * @param position
+     * @returns {*}
+     */
     getAllProducts(position = null) {
         let queryStr = `SELECT p.id,
                                p."name",
@@ -70,12 +81,18 @@ class ProductService {
                           AND ps.quantity > 0`;
         queryStr += notEmpty(position) ? ` AND position = '${position}';` : `;`;
         return this.pool.query(queryStr)
-            .then(({ rows }) => rows)
+            .then(({rows}) => rows)
             .catch(e => {
                 throw e;
             });
     }
 
+    /**
+     * Get products data by list ids and position
+     * @param productIds
+     * @param position
+     * @returns {*}
+     */
     getProductByIds(productIds = [], position = null) {
         let queryStr = `SELECT p.id,
                                p."name",
@@ -99,12 +116,17 @@ class ProductService {
                           AND ps.quantity > 0`;
         queryStr += notEmpty(position) ? ` AND position = '${position}';` : `;`;
         return this.pool.query(queryStr)
-            .then(({ rows }) => rows)
+            .then(({rows}) => rows)
             .catch(e => {
                 throw e;
             });
     }
 
+    /**
+     * Get all sold products or by position
+     * @param position
+     * @returns {*}
+     */
     getSoldProducts(position = null) {
         let queryStr = `SELECT p.id,
                                p."name",
@@ -129,12 +151,17 @@ class ProductService {
                           AND ps.quantity > 0`;
         queryStr += notEmpty(position) ? ` AND position = '${position}';` : `;`;
         return this.pool.query(queryStr)
-            .then(({ rows }) => rows)
+            .then(({rows}) => rows)
             .catch(e => {
                 throw e;
             });
     }
 
+    /**
+     * Get all On-Sale products or by position
+     * @param position
+     * @returns {*}
+     */
     getOnSaleProducts(position = null) {
         let positionCondition = `AND ps."position" = '${position}'`;
         if (notEmpty(position) && Array.isArray(position)) {
@@ -168,202 +195,21 @@ class ProductService {
                                           WHERE p.id = ps.product_id
                                             AND p.product_group_id = pg.id
                                             AND ps.quantity >= 0
-                                            ${positionCondition} ) storage_data
+                                              ${positionCondition}) storage_data
                                     WHERE product_data.invoice_id = purchasing_data.invoice_id
                                       AND storage_data.id = product_data.product_id;`;
         return this.pool.query(onSaleProductQuery)
-            .then(({ rows }) => rows)
+            .then(({rows}) => rows)
             .catch(e => {
                 throw e
             })
     }
 
-    transferProductStorage(transferStorageData = null) {
-        const { product_id, quantity, price, position, source, new_position } = transferStorageData;
-        // Check that target position has any product storage or not
-        return this.pool.query(`SELECT *
-                                FROM ${DATA_TABLES.PRODUCT_STORAGE}
-                                WHERE product_id = $1
-                                  AND position = $2;`, [product_id, new_position])
-            .then(({ rows }) => {
-                let targetPositionStorageQuery = `INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
-                                                  VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
-                let targetPositionStorageData = {
-                    product_id,
-                    quantity,
-                    price,
-                    position: new_position,
-                    source: source
-                }
-                if (rows.length > 0) {
-                    // Target position already exists the product storage -> update quantity only
-                    const existsProductStorage = rows[0];
-                    targetPositionStorageQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
-                                                  SET quantity = $1
-                                                  WHERE product_id = ${product_id}
-                                                    AND position = '${new_position}' RETURNING *;`;
-                    targetPositionStorageData = { quantity: existsProductStorage.quantity + quantity };
-                }
-
-                return Promise.all([
-                    this.pool.query(targetPositionStorageQuery, targetPositionStorageData),
-                    this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
-                                     SET quantity = quantity - ${quantity}
-                                     WHERE product_id = ${product_id}
-                                       AND position = '${position}' RETURNING *;`)
-                ])
-                    .then(([oldProductStorageResult, newProductStorageResult]) => {
-                        if (oldProductStorageResult.rows.length > 0 && newProductStorageResult.rows.length > 0) {
-                            return {
-                                from_storage: oldProductStorageResult.rows[0],
-                                to_storage: newProductStorageResult.rows[0]
-                            };
-                        }
-                        return null;
-                    })
-                    .catch(e => {
-                        throw e
-                    })
-
-            })
-    }
-
-    updateProductStorage(productStorageData = null) {
-        const { product_id, quantity, price, position, source } = productStorageData;
-        return this.pool.query(`SELECT *
-                                FROM ${DATA_TABLES.PRODUCT_STORAGE}
-                                WHERE product_id = $1
-                                  AND position = $2;`, [product_id, position])
-            .then(({ rows }) => {
-                if (rows.length > 0) {
-                    // Update quantity and price
-                    const existsProductStorage = rows[0];
-                    const product_quantity = existsProductStorage.quantity + quantity;
-                    return this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
-                                            SET quantity = $1,
-                                                price    = $2,
-                                                position = $3,
-                                                source   = $4 RETURNING *;`, [product_quantity, price, position, source])
-                        .then(({ rows }) => {
-                            const { quantity, price, position, source } = rows[0];
-                            return {
-                                product_id,
-                                quantity,
-                                price,
-                                position,
-                                source
-                            }
-                        });
-                } else {
-                    return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
-                                            VALUES ($1, $2, $3, $4,
-                                                    $5) RETURNING *;`, [product_id, quantity, price, position, source])
-                        .then(({ rows }) => {
-                            const { quantity, price, position, source } = rows[0];
-                            return {
-                                product_id,
-                                quantity,
-                                price,
-                                position,
-                                source
-                            }
-                        });
-                }
-            })
-    }
-
-    existsProduct(imei = null) {
-        if (notEmpty(imei)) {
-            const productExistsQuery = `SELECT *
-                                        FROM ${DATA_TABLES.PRODUCT}
-                                        WHERE imei = $1 LIMIT 1;`;
-            return this.pool.query(productExistsQuery, [imei])
-                .then(({ rows }) => {
-                    return rows.length > 0 ? rows[0] : null;
-                })
-                .catch(e => {
-                    throw e
-                })
-        } else {
-            return Promise.resolve(null);
-        }
-    }
-
-    updateProductOrQuantity(productData = null) {
-        const { imei, name, color, status, quantity, price, position, source, product_group_id } = productData;
-        const productDetail = {
-            id: null,
-            quantity: 0,
-            name,
-            imei,
-            color,
-            status,
-            product_group_id,
-            price,
-            position,
-            source,
-        }
-        return this.existsProduct(imei)
-            .then((product) => {
-                if (notEmpty(product)) {
-                    productDetail.id = product.id;
-                    return this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
-                                            SET quantity = quantity + $1
-                                            WHERE product_id = $2
-                                              AND position = $3 RETURNING *;`, [quantity, productDetail.id, position])
-                        .then(({ rows }) => {
-                            if (rows.length > 0) {
-                                // Update success
-                                const { quantity } = rows[0];
-                                productDetail.quantity = quantity;
-                                return productDetail;
-                            } else {
-                                // Can not update => insert new product storage record
-                                return this.insertProductStorage({
-                                    product_id: productDetail.id,
-                                    quantity,
-                                    price,
-                                    position,
-                                    source
-                                })
-                                    .then((productStorage) => {
-                                        const { quantity } = productStorage;
-                                        productDetail.quantity = quantity;
-                                        return productDetail;
-                                    })
-                                    .catch(e => {
-                                        throw e
-                                    })
-                            }
-                        });
-                } else {
-                    return this.insertProduct(productData);
-                }
-            })
-            .catch(e => {
-                throw e
-            })
-    }
-
-    insertProductStorage(productStorageData = null) {
-        const { product_id, quantity, price, position, source } = productStorageData;
-        return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
-                                VALUES ($1, $2, $3, $4, $5) RETURNING *;`,
-            Object.values({
-                product_id,
-                quantity,
-                price,
-                position,
-                source
-            }))
-            .then(({ rows }) => {
-                return rows.length > 0 ? rows[0] : null;
-            })
-            .catch(e => {
-                throw e
-            })
-    }
-
+    /**
+     * Insert new product
+     * @param productData
+     * @returns {*}
+     */
     insertProduct(productData = null) {
         const {
             imei,
@@ -395,9 +241,9 @@ class ProductService {
                                 SET quantity = quantity + $1
                                 WHERE product_id IN (SELECT id FROM ${DATA_TABLES.PRODUCT} WHERE imei = $2)
                                   AND position = $3 RETURNING *;`, [quantity, imei, position])
-            .then(({ rows }) => {
+            .then(({rows}) => {
                 if (rows.length > 0) {
-                    const { product_id, quantity } = rows[0];
+                    const {product_id, quantity} = rows[0];
                     productDetail.id = product_id;
                     productDetail.quantity = quantity;
                     return productDetail;
@@ -406,9 +252,9 @@ class ProductService {
                     return this.pool.query(`SELECT id
                                             FROM ${DATA_TABLES.PRODUCT}
                                             WHERE imei = $1`, [imei])
-                        .then(({ rows }) => {
+                        .then(({rows}) => {
                             if (rows.length > 0) {
-                                const { id } = rows[0];
+                                const {id} = rows[0];
                                 return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
                                                         VALUES ($1, $2, $3, $4, $5) RETURNING *;`,
                                     Object.values({
@@ -418,9 +264,9 @@ class ProductService {
                                         position: position,
                                         source: source
                                     }))
-                                    .then(({ rows }) => {
+                                    .then(({rows}) => {
                                         if (rows.length > 0) {
-                                            const { product_id, quantity } = rows[0];
+                                            const {product_id, quantity} = rows[0];
                                             productDetail.id = product_id;
                                             productDetail.quantity = quantity;
                                         }
@@ -439,9 +285,9 @@ class ProductService {
                                     status,
                                     product_group_id,
                                     product_estimated_price
-                                })).then(({ rows }) => {
+                                })).then(({rows}) => {
                                     if (rows.length > 0) {
-                                        const { id, name, imei, color, status } = rows[0];
+                                        const {id, name, imei, color, status} = rows[0];
                                         productDetail.id = id;
                                         return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
                                                                 VALUES ($1, $2, $3, $4, $5) RETURNING *;`,
@@ -452,9 +298,9 @@ class ProductService {
                                                 position: position,
                                                 source: source
                                             }))
-                                            .then(({ rows }) => {
+                                            .then(({rows}) => {
                                                 if (rows.length > 0) {
-                                                    const { quantity } = rows[0];
+                                                    const {quantity} = rows[0];
                                                     productDetail.quantity = quantity;
                                                 }
                                                 return productDetail;
@@ -480,6 +326,11 @@ class ProductService {
             })
     }
 
+    /**
+     * Update product
+     * @param productData
+     * @returns {Promise<never>|*}
+     */
     updateProduct(productData = null) {
         if (notEmpty(productData) && notEmpty(productData.id) && notEmpty(productData.imei)) {
             const {
@@ -512,7 +363,7 @@ class ProductService {
                                               AND product_id IN (SELECT id FROM ${DATA_TABLES.PRODUCT} WHERE imei = '${imei}') RETURNING *;`;
             }
             return this.pool.query(updateProductByImeiQuery, [quantity, price])
-                .then(({ rows }) => {
+                .then(({rows}) => {
                     if (rows.length > 0) {
                         // const {product_id, quantity, price, position, source} = rows[0];
                         return this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT}
@@ -532,8 +383,8 @@ class ProductService {
                                 estimated_price: product_estimated_price
                             })
                         )
-                            .then(({ rows }) => {
-                                const { id, name, imei, color, status, product_group_id, estimated_price } = rows[0];
+                            .then(({rows}) => {
+                                const {id, name, imei, color, status, product_group_id, estimated_price} = rows[0];
                                 return {
                                     id,
                                     name,
@@ -569,7 +420,7 @@ class ProductService {
                                 status,
                                 product_group_id,
                                 estimated_price: product_estimated_price
-                            })).then(({ rows }) => rows[0]).catch(e => {
+                            })).then(({rows}) => rows[0]).catch(e => {
                                 throw e
                             })
                         )
@@ -581,16 +432,16 @@ class ProductService {
                                                               WHERE product_id = ${id}
                                                                 AND position = '${position}' RETURNING *;`;
                         promises.push(
-                            this.pool.query(updateProductStorageQueryStr, Object.values({ quantity, price, source }))
-                                .then(({ rows }) => rows[0])
+                            this.pool.query(updateProductStorageQueryStr, Object.values({quantity, price, source}))
+                                .then(({rows}) => rows[0])
                                 .catch(e => {
                                     throw e
                                 })
                         )
 
                         return Promise.all(promises).then(([product, productStorage]) => {
-                            const { id, name, imei, color, status, estimated_price } = product;
-                            const { quantity, price, position, source } = productStorage;
+                            const {id, name, imei, color, status, estimated_price} = product;
+                            const {quantity, price, position, source} = productStorage;
                             return {
                                 id, name, imei, color, status, quantity, price, position, source, estimated_price
                             }
@@ -609,24 +460,34 @@ class ProductService {
         }
     }
 
+    /**
+     * Delete a product
+     * @param productId
+     * @returns {*}
+     */
     deleteProduct(productId = 0) {
         const deleteProductQuery = `DELETE
                                     FROM ${DATA_TABLES.PRODUCT}
                                     WHERE id = $1;`;
         return this.pool.query(deleteProductQuery, [productId])
             .then((r) => {
-                return { id: productId }
+                return {id: productId}
             })
             .catch(e => {
                 throw e;
             })
     }
 
+    /**
+     * Create a product group
+     * @param name
+     * @returns {*}
+     */
     createProductGroup(name = null) {
         return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_GROUP} (name)
                                 VALUES ($1) RETURNING *;`, [name])
-            .then(({ rows }) => {
-                const { id, name, sort_order } = rows[0];
+            .then(({rows}) => {
+                const {id, name, sort_order} = rows[0];
                 return {
                     id,
                     name,
@@ -638,16 +499,21 @@ class ProductService {
             })
     }
 
+    /**
+     * Update product group data
+     * @param productGroupData
+     * @returns {*}
+     */
     updateProductGroup(productGroupData = null) {
-        const { id, name, sort_order } = productGroupData;
+        const {id, name, sort_order} = productGroupData;
         return this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT_GROUP}
                                 SET name       = $1,
                                     sort_order = $2,
                                     updated_at = $3
                                 WHERE id = $4 RETURNING *;`, [name, sort_order, 'now()', id])
-            .then(({ rows }) => {
-                const { id, name, sort_order } = rows[0];
-                return { id, name, sort_order }
+            .then(({rows}) => {
+                const {id, name, sort_order} = rows[0];
+                return {id, name, sort_order}
             })
             .catch(e => {
                 throw e
@@ -655,19 +521,24 @@ class ProductService {
 
     }
 
+    /**
+     * Delete product group
+     * @param product_group_id
+     * @returns {*}
+     */
     deleteProductGroup(product_group_id = null) {
         return this.pool.query(`SELECT COUNT(*)
                                 FROM ${DATA_TABLES.PRODUCT} p
                                 WHERE p.product_group_id = $1`, [product_group_id])
-            .then(({ rows }) => {
-                const { count } = rows[0];
+            .then(({rows}) => {
+                const {count} = rows[0];
                 if (count > 0) {
                     return Promise.resolve(null);
                 } else {
                     return this.pool.query(`DELETE
                                             FROM ${DATA_TABLES.PRODUCT_GROUP}
                                             WHERE id = $1`, [product_group_id])
-                        .then(({ rows }) => {
+                        .then(({rows}) => {
                             return {
                                 id: product_group_id,
                                 count
@@ -685,10 +556,14 @@ class ProductService {
 
     }
 
+    /**
+     * Get All product groups
+     * @returns {*}
+     */
     getAllProductGroup() {
         return this.pool.query(`SELECT *
                                 FROM ${DATA_TABLES.PRODUCT_GROUP}`)
-            .then(({ rows }) => {
+            .then(({rows}) => {
                 return rows;
             })
             .catch(e => {
@@ -696,6 +571,11 @@ class ProductService {
             })
     }
 
+    /**
+     * Creat a product
+     * @param productData
+     * @returns {*}
+     */
     createProduct(productData = null) {
         const {
             imei,
@@ -725,7 +605,7 @@ class ProductService {
         }
 
         const insertProductSql = `INSERT INTO ${DATA_TABLES.PRODUCT} (imei, name, color, status, product_group_id, estimated_price)
-                                      VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;`;
+                                  VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;`;
         return this.pool.query(insertProductSql, Object.values({
             imei,
             name,
@@ -733,12 +613,12 @@ class ProductService {
             status,
             product_group_id,
             product_estimated_price
-        })).then(({ rows }) => {
+        })).then(({rows}) => {
             if (rows.length > 0) {
-                const { id, name, imei, color, status } = rows[0];
+                const {id, name, imei, color, status} = rows[0];
                 productDetail.id = id;
                 return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
-                                            VALUES ($1, $2, $3, $4, $5) RETURNING *;`,
+                                        VALUES ($1, $2, $3, $4, $5) RETURNING *;`,
                     Object.values({
                         product_id: id,
                         quantity: quantity,
@@ -746,9 +626,9 @@ class ProductService {
                         position: position,
                         source: source
                     }))
-                    .then(({ rows }) => {
+                    .then(({rows}) => {
                         if (rows.length > 0) {
-                            const { quantity } = rows[0];
+                            const {quantity} = rows[0];
                             productDetail.quantity = quantity;
                         }
                         return productDetail;
@@ -764,6 +644,45 @@ class ProductService {
         });
 
     }
+
+    /**
+     * Get product and storage info by imei and position
+     * @param imei
+     * @param position
+     */
+    getProductInfo(imei = null, position = null) {
+        if (isEmpty(imei) && isEmpty(position)) {
+            return Promise.resolve(null);
+        }
+
+        let productInfoQuery = `SELECT p.id,
+                                       p.name,
+                                       p.imei,
+                                       p.color,
+                                       p.status,
+                                       p.product_group_id,
+                                       p.estimated_price,
+                                       p.display_order,
+                                       ps.quantity,
+                                       ps.price,
+                                       ps.position,
+                                       ps.source
+                                FROM product p
+                                         LEFT JOIN product_storage ps
+                                                   ON p.id = ps.product_id AND ps.position = $1
+                                WHERE p.imei = $2`;
+        return this.pool.query(productInfoQuery, [position, imei])
+            .then(({rows}) => {
+                console.log('>>>> rows: ', rows);
+                return rows.length > 0 ? rows[0] : null;
+            })
+            .catch(e => {
+                throw e
+            })
+
+
+    }
+
 }
 
 module.exports = {

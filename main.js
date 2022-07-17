@@ -1803,6 +1803,28 @@ app.post(`${KAI_SERVICES.PRODUCTS}/search`, (req, res) => {
 
 });
 
+app.post(`${KAI_SERVICES.PRODUCTS}/info`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const { imei, position } = req.body;
+    productService.getProductInfo(imei, position)
+        .then(productInfo => {
+            return res.status(HTTP_STATUSES.OK).json(productInfo)
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not get product by Id --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not get product by Id`
+            });
+        });
+
+
+});
+
 // Get all product for shop JP
 app.put(`${KAI_SERVICES.PRODUCTS}`, (req, res) => {
     res.header("Access-Control-Allow-Origin", "*");
