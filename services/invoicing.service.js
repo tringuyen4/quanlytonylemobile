@@ -10,9 +10,10 @@ const {notEmpty, isEmpty} = require("../utils/data.utils");
 const {ProductService} = require("./product.service");
 
 class InvoicingService {
+
     constructor(pool = null) {
-        this.pool = pool; // Connection pool
-        this.productService = new ProductService(this.pool);
+        this.pool = pool; // Connection pool,
+        this.productService = new ProductService(pool);
     }
 
     // Public Methods
@@ -92,7 +93,8 @@ class InvoicingService {
                                           ${DATA_TABLES.PURCHASING_DETAIL} pd
                                      WHERE i.id = pd.invoice_id
                                        AND pd.invoice_id = $1
-                                       AND i."type" = '${INVOICE_TYPE.PURCHASING}' LIMIT 1;`;
+                                       AND i."type" = '${INVOICE_TYPE.PURCHASING}'
+                                     LIMIT 1;`;
         return this.pool.query(getInvoiceItemQuery, [invoiceId])
             .then(({rows}) => {
                 if (rows.length > 0) {
@@ -102,7 +104,8 @@ class InvoicingService {
                     // Enrich invoice info with customer and product items
                     const getCustomerQuery = `SELECT *
                                               FROM ${DATA_TABLES.CUSTOMER}
-                                              WHERE id = $1 LIMIT 1;`;
+                                              WHERE id = $1
+                                              LIMIT 1;`;
                     const getProductsQuery = `SELECT p.*, id.quantity, id.price, ps.position, ps.source
                                               FROM ${DATA_TABLES.INVOICE} i,
                                                    ${DATA_TABLES.INVOICE_DETAIL} id,
@@ -120,8 +123,9 @@ class InvoicingService {
                                               ORDER BY p.display_order ASC;`;
 
                     const getInvoicePaymentQuery = `SELECT *
-                                                    FROM ${DATA_TABLES.INVOICE_PAYMENT} 
-                                                    WHERE invoice_id = $1 LIMIT 1;`
+                                                    FROM ${DATA_TABLES.INVOICE_PAYMENT}
+                                                    WHERE invoice_id = $1
+                                                    LIMIT 1;`
 
                     return Promise.all([
                         this.pool.query(getCustomerQuery, [invoice.customer_id]),
@@ -155,8 +159,9 @@ class InvoicingService {
 
     lockPurchasingInvoice(invoiceId = 0) {
         const lockPurchasingInvoiceQuery = `UPDATE ${DATA_TABLES.INVOICE}
-                                         SET locked = true
-                                         WHERE id = ${invoiceId} RETURNING *;`;
+                                            SET locked = true
+                                            WHERE id = ${invoiceId}
+                                            RETURNING *;`;
         return this.pool.query(lockPurchasingInvoiceQuery)
             .then(({rows}) => {
                 return rows.length > 0 ? rows[0] : null;
@@ -168,8 +173,10 @@ class InvoicingService {
 
     unlockPurchasingInvoice(invoiceId = 0) {
         const lockPurchasingInvoiceQuery = `UPDATE ${DATA_TABLES.INVOICE}
-                                         SET locked = false
-                                         WHERE id = ${invoiceId} AND locked = true RETURNING *;`;
+                                            SET locked = false
+                                            WHERE id = ${invoiceId}
+                                              AND locked = true
+                                            RETURNING *;`;
         return this.pool.query(lockPurchasingInvoiceQuery)
             .then(({rows}) => {
                 return rows.length > 0 ? rows[0] : null;
@@ -216,7 +223,8 @@ class InvoicingService {
                         // Step 2: Update status of invoice to TERMINATED
                         return this.pool.query(`UPDATE ${DATA_TABLES.INVOICE}
                                                 SET status = '${INVOICE_STATUS.TERMINATED}'
-                                                WHERE id = ${invoiceId} RETURNING id;`)
+                                                WHERE id = ${invoiceId}
+                                                RETURNING id;`)
                             .then((rows) => {
                                 if (rows.length > 0) {
                                     const {id} = rows[0];
@@ -362,7 +370,8 @@ class InvoicingService {
         } = transferData;
         // Create new invoice and invoice item with invoice items in PROCESSING transfer status
         const purchasingInvoiceQuery = `INSERT INTO ${DATA_TABLES.INVOICE} (sale_date, total_quantity, total_money, type, status)
-                                        VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
+                                        VALUES ($1, $2, $3, $4, $5)
+                                        RETURNING *;`;
         return this.pool.query(purchasingInvoiceQuery, Object.values({
             sale_date,
             total_quantity,
@@ -394,7 +403,8 @@ class InvoicingService {
                                                                                      price, exchange_rate,
                                                                                      sub_fee, transfer_price,
                                                                                      transfer_status, transfer_date)
-                                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *;`,
+                                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                                         RETURNING *;`,
                             Object.values({
                                 invoice_id: id,
                                 product_id,
@@ -415,13 +425,15 @@ class InvoicingService {
                         this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
                                          SET quantity = quantity - ${quantity}
                                          WHERE product_id = ${product_id}
-                                           AND position = '${from_position}' RETURNING *;`)
+                                           AND position = '${from_position}'
+                                         RETURNING *;`)
                     )
 
                     promises.push(
                         this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT}
                                          SET estimated_price = $1
-                                         WHERE id = ${product_id} RETURNING *;`, [transfer_estimated_price])
+                                         WHERE id = ${product_id}
+                                         RETURNING *;`, [transfer_estimated_price])
                     )
                 })
                 return Promise.all(promises).then(r => {
@@ -454,13 +466,15 @@ class InvoicingService {
                         this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
                                          SET quantity = quantity + $1
                                          WHERE product_id = $2
-                                           AND position = $3 RETURNING *;`, [quantity, productId, to_position])
+                                           AND position = $3
+                                         RETURNING *;`, [quantity, productId, to_position])
                             .then(({rows}) => {
                                 if (rows.length === 0) {
                                     // In-case can not update we will insert new one
                                     return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
                                                             VALUES ($1, $2, $3, $4,
-                                                                    $5) RETURNING *`, [productId, quantity, price, to_position, from_position])
+                                                                    $5)
+                                                            RETURNING *`, [productId, quantity, price, to_position, from_position])
                                         .then(({rows}) => rows[0])
                                         .catch(e => {
                                             throw e
@@ -484,7 +498,8 @@ class InvoicingService {
                                                              AND tt.transfer_status = '${TRANSFER_STATUS.PROCESSING}') =
                                                           0
                                                       AND id = $1
-                                                      AND status = '${INVOICE_STATUS.PROCESSING}' RETURNING *;`, [invoiceId])
+                                                      AND status = '${INVOICE_STATUS.PROCESSING}'
+                                                    RETURNING *;`, [invoiceId])
                                 .then(({rows}) => {
                                     return {invoice_id: invoiceId, product_id: productId}
                                 })
@@ -535,7 +550,8 @@ class InvoicingService {
                                                              AND tt.transfer_status = '${TRANSFER_STATUS.PROCESSING}') =
                                                           0
                                                       AND id = $1
-                                                      AND status = '${INVOICE_STATUS.PROCESSING}' RETURNING *;`, [invoiceId])
+                                                      AND status = '${INVOICE_STATUS.PROCESSING}'
+                                                    RETURNING *;`, [invoiceId])
                                 .then(({rows}) => {
                                     return {invoice_id: invoiceId, product_id: productId}
                                 })
@@ -568,7 +584,8 @@ class InvoicingService {
                             this.pool.query(`UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
                                              SET quantity = quantity + $1
                                              WHERE product_id = $2
-                                               AND position = $3 RETURNING *;`, [quantity, product_id, to_position])
+                                               AND position = $3
+                                             RETURNING *;`, [quantity, product_id, to_position])
                                 .then(({rows}) => {
                                     if (rows.length > 0) {
                                         return rows[0]
@@ -576,7 +593,8 @@ class InvoicingService {
                                         // In-case can not update we will insert new one
                                         return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
                                                                 VALUES ($1, $2, $3, $4,
-                                                                        $5) RETURNING *`, [product_id, quantity, price, to_position, from_position])
+                                                                        $5)
+                                                                RETURNING *`, [product_id, quantity, price, to_position, from_position])
                                             .then(({rows}) => rows[0])
                                             .catch(e => {
                                                 throw e
@@ -781,7 +799,8 @@ class InvoicingService {
         const {quantity, sale_date, total_money} = invoiceData;
 
         const purchasingInvoiceQuery = `INSERT INTO ${DATA_TABLES.INVOICE} (sale_date, total_quantity, total_money, type, status)
-                                        VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
+                                        VALUES ($1, $2, $3, $4, $5)
+                                        RETURNING *;`;
         return this.pool.query(purchasingInvoiceQuery, Object.values({
             sale_date,
             quantity,
@@ -817,9 +836,12 @@ class InvoicingService {
                                                   SELECT ${invoice_id},
                                                          ${productItem.id},
                                                          $1,
-                                                         $2 WHERE NOT EXISTS(
+                                                         $2
+                                                  WHERE NOT EXISTS(
                                                           SELECT invoice_id, product_id
-                                                          FROM ${DATA_TABLES.INVOICE_DETAIL} WHERE invoice_id = ${invoice_id} AND product_id = ${productItem.id} );`
+                                                          FROM ${DATA_TABLES.INVOICE_DETAIL}
+                                                          WHERE invoice_id = ${invoice_id}
+                                                            AND product_id = ${productItem.id});`
                 promises.push(
                     this.pool.query(insertInvoiceDetailQuery, Object.values({
                         quantity: productItem.quantity,
@@ -869,7 +891,8 @@ class InvoicingService {
         }
 
         let purchasingInvoiceQuery = `INSERT INTO ${DATA_TABLES.INVOICE} (sale_date, total_quantity, total_money, type, status, payment_type)
-                                      VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;`;
+                                      VALUES ($1, $2, $3, $4, $5, $6)
+                                      RETURNING *;`;
         if (notEmpty(invoice_id)) {
             purchasingInvoiceQuery = `UPDATE ${DATA_TABLES.INVOICE}
                                       SET sale_date      = $1,
@@ -878,7 +901,8 @@ class InvoicingService {
                                           type           = $4,
                                           status         = $5,
                                           payment_type   = $6
-                                      WHERE id = ${invoice_id} RETURNING *;`;
+                                      WHERE id = ${invoice_id}
+                                      RETURNING *;`;
         }
 
         return this.pool.query(purchasingInvoiceQuery, Object.values(purchasingInvoiceData))
@@ -921,7 +945,8 @@ class InvoicingService {
 
             // Handle for customer
             let customerQuery = `INSERT INTO ${DATA_TABLES.CUSTOMER} (name_vietnamese, name_japanese, birthday, age, address, phone, job)
-                                 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;`;
+                                 VALUES ($1, $2, $3, $4, $5, $6, $7)
+                                 RETURNING *;`;
             if (notEmpty(customerData.id)) {
                 customerQuery = `UPDATE ${DATA_TABLES.CUSTOMER}
                                  SET name_vietnamese = $1,
@@ -931,7 +956,8 @@ class InvoicingService {
                                      address         = $5,
                                      phone           = $6,
                                      job             = $7
-                                 WHERE id = ${customerData.id} RETURNING *;`;
+                                 WHERE id = ${customerData.id}
+                                 RETURNING *;`;
             }
             promises.push(
                 this.pool.query(customerQuery, Object.values({
@@ -1023,7 +1049,8 @@ class InvoicingService {
                                                SET quantity = $1,
                                                    price    = $2
                                                WHERE product_id = $3
-                                                 AND position = $4 RETURNING *;`;
+                                                 AND position = $4
+                                               RETURNING *;`;
                     let productStorageParams = {
                         quantity: product.quantity,
                         price: +product.price,
@@ -1042,7 +1069,8 @@ class InvoicingService {
                                             status           = $4,
                                             product_group_id = $5,
                                             display_order    = $6
-                                        WHERE id = ${id} RETURNING *;`
+                                        WHERE id = ${id}
+                                        RETURNING *;`
 
                         if (isEmpty(product.id)) {
                             // New product invoice: update increase quantity
@@ -1050,12 +1078,14 @@ class InvoicingService {
                                                    SET quantity = quantity + $1,
                                                        price    = $2
                                                    WHERE product_id = $3
-                                                     AND position = $4 RETURNING *;`;
+                                                     AND position = $4
+                                                   RETURNING *;`;
                         }
                     } else {
                         if (isEmpty(product.id)) {
                             productQuery = `INSERT INTO ${DATA_TABLES.PRODUCT} (name, imei, color, status, product_group_id, display_order)
-                                            VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;`;
+                                            VALUES ($1, $2, $3, $4, $5, $6)
+                                            RETURNING *;`;
                         }
                     }
 
@@ -1084,7 +1114,8 @@ class InvoicingService {
                                         }
 
                                         productStorageQuery = `INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
-                                                               VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
+                                                               VALUES ($1, $2, $3, $4, $5)
+                                                               RETURNING *;`;
                                         return this.pool.query(productStorageQuery, Object.values(productStorageParams))
                                             .then(({rows}) => {
                                                 const {product_id, quantity, price} = rows[0];
@@ -1118,92 +1149,6 @@ class InvoicingService {
         }
     }
 
-    _saveProduct(product) {
-        if (isEmpty(product.display_order)) {
-            product.display_order = 0;
-        }
-        const getProductByImeiQuery = `SELECT *
-                                       FROM ${DATA_TABLES.PRODUCT}
-                                       WHERE imei = '${product.imei}';`;
-        return this.pool.query(getProductByImeiQuery).then(({rows}) => {
-            const productParams = {
-                name: product.name,
-                imei: product.imei,
-                color: product.color,
-                status: product.status,
-                product_group_id: product.product_group_id,
-                display_order: product.display_order,
-            }
-            let isNewProduct = true;
-            let productQuery = `INSERT INTO ${DATA_TABLES.PRODUCT} (name, imei, color, status, product_group_id, display_order)
-                                VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;`;
-            if (rows.length > 0) {
-
-                // Exists quantity
-                const {id} = rows[0];
-                productQuery = `UPDATE ${DATA_TABLES.PRODUCT}
-                                SET name             = $1,
-                                    imei             = $2,
-                                    color            = $3,
-                                    status           = $4,
-                                    product_group_id = $5,
-                                    display_order    = $6
-                                WHERE id = ${id} RETURNING *;`;
-                isNewProduct = false;
-            }
-
-            return this.pool.query(productQuery, Object.values(productParams)).then(({rows}) => {
-                const {id} = rows[0];
-                let updateProductStorageQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
-                                                 SET quantity = $1,
-                                                     price    = $2
-                                                 WHERE product_id = $3
-                                                   AND position = $4 RETURNING *;`
-                if (isNewProduct) {
-                    updateProductStorageQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
-                                                 SET quantity = quantity + $1,
-                                                     price    = $2
-                                                 WHERE product_id = $3
-                                                   AND position = $4 RETURNING *;`
-                }
-                return this.pool.query(updateProductStorageQuery, [product.quantity, +product.price, id, product.position])
-                    .then(({rows}) => {
-                        if (rows.length > 0) {
-                            const {product_id, quantity, price} = rows[0];
-                            product.id = product_id;
-                            return {
-                                product,
-                                purchasing_quantity: quantity,
-                                purchasing_price: price
-                            };
-                        } else {
-                            return this.pool.query(`INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
-                                                    VALUES ($1, $2, $3, $4,
-                                                            $5) RETURNING *;`, [id, product.quantity, +product.price, product.position, product.source])
-                                .then(({rows}) => {
-                                    const {product_id, quantity, price} = rows[0];
-                                    product.id = product_id;
-                                    return {
-                                        product,
-                                        purchasing_quantity: quantity,
-                                        purchasing_price: price
-                                    };
-                                })
-                                .catch(e => {
-                                    throw e
-                                })
-                        }
-                    })
-                    .catch(e => {
-                        throw e
-                    })
-            })
-
-        }).catch(e => {
-            throw e;
-        })
-    }
-
     _processPaymentDetail(purchasingInvoice = PURCHASING_INVOICE, payment_info) {
         const {payment_type, payment_detail, payment_create_date} = payment_info;
         const {customer} = purchasingInvoice;
@@ -1225,12 +1170,14 @@ class InvoicingService {
                                             hinhthucthanhtoan = $4,
                                             vitri             = $5,
                                             invoice_id        = $6
-                                        WHERE invoice_id = ${invoice_id} RETURNING *;`, Object.values(quanlichiParam))
+                                        WHERE invoice_id = ${invoice_id}
+                                        RETURNING *;`, Object.values(quanlichiParam))
                     .then(({rows}) => {
                         if (rows.length === 0) {
                             return this.pool.query(`INSERT INTO quanlychi (sotien, ngaytao, mucdich, hinhthucthanhtoan, vitri, invoice_id)
                                                     VALUES ($1, $2, $3, $4, $5,
-                                                            $6) RETURNING *;`, Object.values(quanlichiParam))
+                                                            $6)
+                                                    RETURNING *;`, Object.values(quanlichiParam))
                                 .then(({rows}) => {
                                     return purchasingInvoice;
                                 })
@@ -1254,12 +1201,14 @@ class InvoicingService {
                                          hinhthucthanhtoan = $4,
                                          vitri             = $5,
                                          invoice_id        = $6
-                                     WHERE invoice_id = ${invoice_id} RETURNING *;`, Object.values(quanlichiParam))
+                                     WHERE invoice_id = ${invoice_id}
+                                     RETURNING *;`, Object.values(quanlichiParam))
                         .then(({rows}) => {
                             if (rows.length === 0) {
                                 return this.pool.query(`INSERT INTO quanlychi (sotien, ngaytao, mucdich, hinhthucthanhtoan, vitri, invoice_id)
                                                         VALUES ($1, $2, $3, $4, $5,
-                                                                $6) RETURNING *;`, Object.values(quanlichiParam))
+                                                                $6)
+                                                        RETURNING *;`, Object.values(quanlichiParam))
                                     .then(({rows}) => {
                                         return purchasingInvoice;
                                     })
@@ -1294,7 +1243,8 @@ class InvoicingService {
                                          branch_name    = $5,
                                          account_name   = $6,
                                          payment_method = $7
-                                         WHERE invoice_id = ${invoice_id} RETURNING *;`, Object.values(paymentDetail))
+                                     WHERE invoice_id = ${invoice_id}
+                                     RETURNING *;`, Object.values(paymentDetail))
                         .then(({rows}) => {
                             if (rows.length === 0) {
                                 return this.pool.query(`INSERT INTO ${DATA_TABLES.INVOICE_PAYMENT} (invoice_id,
@@ -1304,7 +1254,8 @@ class InvoicingService {
                                                                                                     account_name,
                                                                                                     payment_method)
                                                         VALUES ($1, $2, $3, $4, $5, $6,
-                                                                $7) RETURNING *;`, Object.values(paymentDetail))
+                                                                $7)
+                                                        RETURNING *;`, Object.values(paymentDetail))
                                     .then(({rows}) => {
                                         return purchasingInvoice;
                                     })
@@ -1370,9 +1321,12 @@ class InvoicingService {
                                               SELECT ${invoice_id},
                                                      ${product.id},
                                                      $1,
-                                                     $2 WHERE NOT EXISTS(
+                                                     $2
+                                              WHERE NOT EXISTS(
                                                       SELECT invoice_id, product_id
-                                                      FROM ${DATA_TABLES.INVOICE_DETAIL} WHERE invoice_id = ${invoice_id} AND product_id = ${product.id} );`
+                                                      FROM ${DATA_TABLES.INVOICE_DETAIL}
+                                                      WHERE invoice_id = ${invoice_id}
+                                                        AND product_id = ${product.id});`
             promises.push(this.pool.query(insertInvoiceDetailQuery, Object.values(invoiceDetailParams)));
 
         });
@@ -1385,9 +1339,12 @@ class InvoicingService {
                     if (rows.length === 0) {
                         return this.pool.query(`INSERT INTO ${DATA_TABLES.PURCHASING_DETAIL}
                                                 SELECT $1,
-                                                       $2 WHERE NOT EXISTS(
-                                     SELECT invoice_id, customer_id
-                                     FROM ${DATA_TABLES.PURCHASING_DETAIL} WHERE invoice_id = $1 AND customer_id = $2 );`, Object.values({
+                                                       $2
+                                                WHERE NOT EXISTS(
+                                                        SELECT invoice_id, customer_id
+                                                        FROM ${DATA_TABLES.PURCHASING_DETAIL}
+                                                        WHERE invoice_id = $1
+                                                          AND customer_id = $2);`, Object.values({
                             invoice_id,
                             customer_id: purchasingInvoice.customer.id
                         }))
@@ -1409,6 +1366,100 @@ class InvoicingService {
             throw e;
         });
     }
+
+    _processPurchasingProduct(productData = null) {
+        if (notEmpty(productData)) {
+            if (isEmpty(productData.display_order)) {
+                productData.display_order = 0;
+            }
+            const {imei, position, name, color, status, product_group_id, display_order, quantity, price, source} = productData;
+            return this.productService.getProductInfo(imei, position)
+                .then((productInfo) => {
+                    let productQuery = ``;
+                    let productParams = {
+                        name,
+                        imei,
+                        color,
+                        status,
+                        product_group_id,
+                        display_order,
+                    };
+                    let productStorageQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
+                                               SET quantity = $1,
+                                                   price    = $2
+                                               WHERE product_id = $3
+                                                 AND position = $4
+                                               RETURNING *;`;
+                    let productStorageParams = {
+                        quantity: quantity,
+                        price: +productData.price, //Trick to convert string to number
+                        product_id: null,
+                        position: position,
+                    };
+
+                    if (notEmpty(productInfo)) {
+                        // Exists product with imei
+
+                        // Enrich product_id for product_storage
+                        productStorageParams.product_id = productInfo.id;
+
+                        // Setup product query for update
+                        productQuery = `UPDATE ${DATA_TABLES.PRODUCT}
+                                        SET name             = $1,
+                                            imei             = $2,
+                                            color            = $3,
+                                            status           = $4,
+                                            product_group_id = $5,
+                                            display_order    = $6
+                                        WHERE id = ${id}
+                                        RETURNING *;`;
+
+                        if (notEmpty(productInfo.position)) {
+                            // Update product_storage
+                            // If duplicate imei, status, price: increase product quantity
+                            if (notEmpty(productInfo.price) && status == productInfo.status && price == productInfo.price) {
+                                productStorageQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
+                                                       SET quantity = quantity + $1,
+                                                           price    = $2
+                                                       WHERE product_id = $3
+                                                         AND position = $4
+                                                       RETURNING *;`;
+                            } else {
+                                productStorageQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
+                                                       SET quantity = $1,
+                                                           price    = $2
+                                                       WHERE product_id = $3
+                                                         AND position = $4
+                                                       RETURNING *;`;
+                            }
+                        } else {
+                            // productInfo.position is empty, this is a new product_storage insert it
+                            productStorageParams = {
+                                product_id: null,
+                                quantity: productStorageParams.quantity,
+                                price: productStorageParams.price,
+                                position: productStorageParams.position,
+                                source
+                            }
+                            productStorageQuery = `INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
+                                                   VALUES ($1, $2, $3, $4, $5)
+                                                   RETURNING *;`;
+                        }
+                    } else {
+                        // In-case: Not found product by imei it could be a new product or update imei number
+
+                    }
+
+
+                })
+                .catch(e => {
+                    throw e
+                })
+        } else {
+            return Promise.resolve(null);
+        }
+    }
+
 }
 
 module.exports = {
