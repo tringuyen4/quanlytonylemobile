@@ -1,8 +1,13 @@
 const {DATA_TABLES} = require("../constants/data.constant");
+const {PRODUCT_SOURCE} = require("../constants/common.constant");
 
 class ReportService {
     constructor(dbPool) {
         this.pool = dbPool;
+    }
+
+    sellingInvoiceReport(invoiceId = 0, position = PRODUCT_SOURCE.SHOP_JP) {
+
     }
 
     kaiPurchasingInvoiceReport(invoiceId = 0) {

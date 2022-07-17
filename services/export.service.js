@@ -12,7 +12,22 @@ const {notEmpty} = require("../utils/data.utils");
 const EXPORT_TEMPLATES = {
     INVOICE: './exports/invoice_template.xlsx',
     TRANSFER_PAYMENT_INVOICE: './exports/transfer_payment_invoice_template.xlsx',
-    NOTE: './exports/xuat_ban_chu_thich.xlsx'
+    NOTE: './exports/xuat_ban_chu_thich.xlsx',
+    SELLING: './exports/xuat_ban_template.xlsx',
+}
+
+const SELLING_EXPORT_CELLS = {
+    SALE_DATE: 'D2',
+    CUSTOMER_NAME: 'B10',
+
+    PRODUCT_TABLE_START_ROW: 13,
+    PRODUCT_NAME_COLUMN: 'B',
+    PRODUCT_IMEI_COLUMN: 'C',
+    PRODUCT_QUANTITY_COLUMN: 'D',
+    PRODUCT_PRICE_COLUMN: 'E',
+    PRODUCT_WARRANTY_PERIOD_COLUMN: 'F',
+
+    SUMMARY_MONEY_COLUMN: 'E',
 }
 
 const INVOICE_EXPORT_CELLS = {
@@ -65,6 +80,18 @@ class ExportService {
         return noteTemplate.xlsx.writeBuffer().then((buffer) => buffer).catch((e) => {
             console.log('>>> ExportService:noteReport Error: ', e);
         });
+    }
+
+    /**
+     * Selling Report
+     * @param reportDetail
+     * @returns {Promise<void>}
+     */
+    async sellingReport(reportDetail) {
+        let sellingTemplate = await this._readTemplate(EXPORT_TEMPLATES.SELLING);
+        const {reportHeader, summary, products} = reportDetail;
+        // Write fixed heading
+
     }
 
     /**
