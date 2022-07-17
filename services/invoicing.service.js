@@ -220,20 +220,27 @@ class InvoicingService {
                 });
                 return Promise.all(promises)
                     .then(r => {
-                        // Step 2: Update status of invoice to TERMINATED
-                        return this.pool.query(`UPDATE ${DATA_TABLES.INVOICE}
+                        // Step 2: Update status of invoice to TERMINATED and delete quanlychi record
+                        const updateInvoicePromises = [
+                            this.pool.query(`UPDATE ${DATA_TABLES.INVOICE}
                                                 SET status = '${INVOICE_STATUS.TERMINATED}'
                                                 WHERE id = ${invoiceId}
+                                                RETURNING id;`),
+                            this.pool.query(`DELETE FROM ${DATA_TABLES.QUAN_LY_CHI}
+                                                WHERE invoice_id = ${invoiceId}
                                                 RETURNING id;`)
-                            .then((rows) => {
-                                if (rows.length > 0) {
-                                    const {id} = rows[0];
+                        ];
+
+                        return Promise.all(updateInvoicePromises)
+                            .then(([invoiceResult, paymentResult]) => {
+                                if (invoiceResult.rows.length > 0) {
+                                    const {id} = invoiceResult.rows[0];
                                     return {id};
                                 }
                                 return null;
                             })
                             .catch(e => {
-                                throw e;
+                                throw e
                             })
                     })
                     .catch(e => {
