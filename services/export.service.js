@@ -5,9 +5,10 @@ const {
     getJobText,
     getDeviceStatusText,
     priceWithFormat,
-    getPaymentMethod
+    getPaymentMethod, getWarrantyText, priceWithSymbol
 } = require("../utils/common.utils");
 const {notEmpty} = require("../utils/data.utils");
+const {PRODUCT_SOURCE} = require("../constants/common.constant");
 
 const EXPORT_TEMPLATES = {
     INVOICE: './exports/invoice_template.xlsx',
@@ -21,6 +22,8 @@ const SELLING_EXPORT_CELLS = {
     CUSTOMER_NAME: 'B10',
 
     PRODUCT_TABLE_START_ROW: 13,
+
+    NO_COLUMN: 'A',
     PRODUCT_NAME_COLUMN: 'B',
     PRODUCT_IMEI_COLUMN: 'C',
     PRODUCT_QUANTITY_COLUMN: 'D',
@@ -89,9 +92,61 @@ class ExportService {
      */
     async sellingReport(reportDetail) {
         let sellingTemplate = await this._readTemplate(EXPORT_TEMPLATES.SELLING);
-        const {reportHeader, summary, products} = reportDetail;
+        const {reportHeader, summary, products, position} = reportDetail;
         // Write fixed heading
+        sellingTemplate = this._writeSellingReportHeader(sellingTemplate, reportHeader);
+        // Write devices list
+        sellingTemplate = this._writeSellingReportItems(sellingTemplate, products, position);
+        // Write the summary values
+        const summaryRowIndex = SELLING_EXPORT_CELLS.PRODUCT_TABLE_START_ROW + (notEmpty(products) ? products.length : 1);
+        sellingTemplate = this._writeSellingReportSummary(sellingTemplate, summary, summaryRowIndex);
+        // Write workbook as a arrayBuffer
+        return sellingTemplate.xlsx.writeBuffer().then((buffer) => buffer).catch((e) => {
+            console.log('>>> ExportService:invoiceReport Error: ', e);
+        });
 
+    }
+
+    _writeSellingReportHeader(wb, invoiceHeader) {
+        const ws = wb.getWorksheet(1);
+        const {ngayban, tenkhachhang} = invoiceHeader;
+        ws.getCell(SELLING_EXPORT_CELLS.SALE_DATE).value = dateFormat(new Date(ngayban));
+        ws.getCell(SELLING_EXPORT_CELLS.CUSTOMER_NAME).value = tenkhachhang;
+        return wb;
+    }
+
+    _writeSellingReportItems(wb, products, position = PRODUCT_SOURCE.SHOP_JP, itemsRowIndex = SELLING_EXPORT_CELLS.PRODUCT_TABLE_START_ROW) {
+        const ws = wb.getWorksheet(1);
+        if (notEmpty(products)) {
+            // Prepare the Rows layout, duplicate the rows
+            if (products.length > 1) {
+                ws.duplicateRow(itemsRowIndex, products.length - 1, true);
+            }
+
+            // Write data to cell
+            products.forEach((product, index) => {
+                const rowIndex = itemsRowIndex + index;
+                const noIndex = index + 1;
+                const currentRow = ws.getRow(rowIndex);
+                const {tensanpham, giatien, soluong, thoihanbaohanh, imei} = product;
+                currentRow.getCell(`${SELLING_EXPORT_CELLS.NO_COLUMN}`).value = noIndex;
+                currentRow.getCell(`${SELLING_EXPORT_CELLS.PRODUCT_NAME_COLUMN}`).value = tensanpham;
+                currentRow.getCell(`${SELLING_EXPORT_CELLS.PRODUCT_IMEI_COLUMN}`).value = imei;
+                currentRow.getCell(`${SELLING_EXPORT_CELLS.PRODUCT_QUANTITY_COLUMN}`).value = soluong;
+                currentRow.getCell(`${SELLING_EXPORT_CELLS.PRODUCT_PRICE_COLUMN}`).value = priceWithSymbol(priceWithFormat(giatien));
+                currentRow.getCell(`${SELLING_EXPORT_CELLS.PRODUCT_WARRANTY_PERIOD_COLUMN}`).value = getWarrantyText(thoihanbaohanh);
+                currentRow.commit();
+            });
+        }
+        return wb;
+    }
+
+    _writeSellingReportSummary(wb, summaryData, summaryRowIndex = SELLING_EXPORT_CELLS.PRODUCT_TABLE_START_ROW + 1) {
+        const ws = wb.getWorksheet(1);
+        const {giatien} = summaryData;
+        const totalMoneyAddress = `${SELLING_EXPORT_CELLS.SUMMARY_MONEY_COLUMN}${summaryRowIndex}`;
+        ws.getCell(totalMoneyAddress).value = priceWithSymbol(priceWithFormat(giatien));
+        return wb;
     }
 
     /**

@@ -7,13 +7,80 @@ class ReportService {
     }
 
     sellingInvoiceReport(invoiceId = 0, position = PRODUCT_SOURCE.SHOP_JP) {
+        return Promise.all([
+            this._sellingInvoiceReportHeaderAndSummary(invoiceId),
+            this._sellingInvoiceReportData(invoiceId, position)
+        ])
+            .then(([headerAndSummary, products]) => {
+                const {
+                    madonhang,
+                    ngayban,
+                    giatien,
+                    tenkhachhang
+                } = headerAndSummary;
+                return {
+                    reportHeader: {
+                        madonhang,
+                        ngayban,
+                        tenkhachhang,
+                    },
+                    position,
+                    summary: {
+                        giatien
+                    },
+                    products
+                }
+            })
+            .catch(e => {
+                throw e;
+            })
+    }
 
+    _sellingInvoiceReportHeaderAndSummary(invoiceId = 0) {
+        const sellingDetailQuery = `SELECT *
+                                    FROM danhsachdonhang
+                                    WHERE madonhang = ($1)
+                                    LIMIT 1;`;
+        return this.pool.query(sellingDetailQuery, [invoiceId])
+            .then(({rows}) => {
+                if (rows.length > 0) {
+                    const {madonhang, ngayban, giatien, tenkhachhang} = rows[0];
+                    return {
+                        madonhang,
+                        ngayban,
+                        giatien,
+                        tenkhachhang
+                    }
+                }
+                return null;
+            })
+            .catch(e => {
+                console.log('>>>> e: ', e.message);
+                throw e;
+            })
+    }
+
+    _sellingInvoiceReportData(invoiceId = 0, position = PRODUCT_SOURCE.SHOP_JP) {
+        const sellingInvoiceDataQuery = `select p.tensanpham, p.giatien, p.soluong, p.thoihanbaohanh, p.imei
+                                         from danhsachdonhang
+                                                  inner join danhsachsanphamdaban p
+                                                             on danhsachdonhang.transactionkey = p.transactionkey
+                                                  inner join product on p.productid = Cast(product.id as varchar)
+                                         where danhsachdonhang.vitri = ($1)
+                                           and madonhang = ($2)
+                                         order by madonhang DESC;`;
+        return this.pool.query(sellingInvoiceDataQuery, [position, invoiceId])
+            .then(({rows}) => rows)
+            .catch(e => {
+                throw e;
+            })
     }
 
     kaiPurchasingInvoiceReport(invoiceId = 0) {
         return this.pool.query(`SELECT *
                                 FROM ${DATA_TABLES.PURCHASING_DETAIL}
-                                WHERE invoice_id = ${invoiceId} LIMIT 1;`)
+                                WHERE invoice_id = ${invoiceId}
+                                LIMIT 1;`)
             .then(({rows}) => {
                 if (rows.length > 0) {
                     const {invoice_id, customer_id} = rows[0];
@@ -43,7 +110,8 @@ class ReportService {
     kaiPurchasingInvoiceReportTransferPayment(invoiceId = 0) {
         return this.pool.query(`SELECT *
                                 FROM ${DATA_TABLES.PURCHASING_DETAIL}
-                                WHERE invoice_id = ${invoiceId} LIMIT 1;`)
+                                WHERE invoice_id = ${invoiceId}
+                                LIMIT 1;`)
             .then(({rows}) => {
                 if (rows.length > 0) {
                     const {invoice_id, customer_id} = rows[0];
@@ -74,12 +142,21 @@ class ReportService {
 
     _kaiPurchasingInvoiceReportPaymentDetail(invoiceId = 0) {
         const paymentDetailSql = `SELECT *
-                                 FROM ${DATA_TABLES.INVOICE_PAYMENT}
-                                 WHERE invoice_id = $1 LIMIT 1;`;
+                                  FROM ${DATA_TABLES.INVOICE_PAYMENT}
+                                  WHERE invoice_id = $1
+                                  LIMIT 1;`;
         return this.pool.query(paymentDetailSql, [invoiceId])
             .then(({rows}) => {
                 if (rows.length > 0) {
-                    const {invoice_id, invoice_code, bank_id, bank_name, branch_name, account_name, payment_method} = rows[0];
+                    const {
+                        invoice_id,
+                        invoice_code,
+                        bank_id,
+                        bank_name,
+                        branch_name,
+                        account_name,
+                        payment_method
+                    } = rows[0];
                     return {
                         invoice_id,
                         invoice_code,
@@ -137,7 +214,8 @@ class ReportService {
                                            AND p.id = id.product_id
                                          GROUP BY pd.invoice_id
                                          HAVING pd.invoice_id = $1) reportSummary
-                                   WHERE reportSummary.invoice_id = i.id LIMIT 1`;
+                                   WHERE reportSummary.invoice_id = i.id
+                                   LIMIT 1`;
         return this.pool.query(invoiceSummarySql, [invoiceId])
             .then(({rows}) => {
                 if (rows.length > 0) {

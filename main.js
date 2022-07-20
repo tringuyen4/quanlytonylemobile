@@ -620,9 +620,9 @@ app.post('/taodanhsachdonhang/', function (req, res) {
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
     res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
 
-    pool.query('INSERT INTO danhsachdonhang VALUES (DEFAULT,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)', postData, function (error, results, fields) {
+    pool.query('INSERT INTO danhsachdonhang VALUES (DEFAULT,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *;', postData, function (error, results, fields) {
         if (error) throw error;
-        res.end(JSON.stringify(results.rows));
+        res.end(results.rows.length > 0 ? JSON.stringify(results.rows[0]) : null);
     });
 });
 
@@ -2227,6 +2227,27 @@ app.post(`${KAI_SERVICES.PURCHASING_INVOICES}`, (req, res) => {
                 error: 'Can not create/update invoice'
             })
         })
+});
+
+app.post(`${KAI_SERVICES.PURCHASING_INVOICES}/selling/report`, (req, res) => {
+    const {invoice_id, position} = req.body;
+    reportService.sellingInvoiceReport(invoice_id, position)
+        .then(reportData => {
+            exportService.sellingReport(reportData)
+                .then((bufferResponse) => {
+                    console.log('>>> Generate Invoice Report Finished! Customer Name: ', reportData.reportHeader.name_vietnamese);
+                    res.end(bufferResponse);
+                })
+                .catch(e => {
+                    console.log('>>>> Can not export purchasing invoice for Customer with name: ', reportData.reportHeader.name_vietnamese);
+                    res.end(null);
+                });
+        })
+        .catch(e => {
+            console.log('>>>> Can not export purchasing invoice for Customer with invoice id: ', invoice_id);
+            res.end(null);
+        })
+
 });
 
 app.post(`${KAI_SERVICES.PURCHASING_INVOICES}/save-and-report`, (req, res) => {

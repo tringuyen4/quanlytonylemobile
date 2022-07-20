@@ -39,6 +39,14 @@ const MOBILE_STATUSES = [
     {label: 'Second-D', value: DEVICE_STATUS.SECOND_HAND_D},
 ]
 
+const WARRANTIES = [
+    {label: '15 ngày', value: '15ngay'},
+    {label: '1 tháng', value: '1thang'},
+    {label: '3 tháng', value: '3thang'},
+    {label: '6 tháng', value: '6thang'},
+    {label: '1 năm', value: '1nam'},
+]
+
 
 const PAYMENT_METHOD = {
     ORDINARY_DEPOSIT: 'ORDINARY_DEPOSIT',
@@ -90,6 +98,11 @@ const PAYMENT_TYPE = {
     TRANSFER: 'chuyenkhoan',
 }
 
+const MONEY_SYMBOL = {
+    VND: 'đ',
+    JPY: '¥',
+}
+
 module.exports = {
     APP_VERSION,
     AGE_PREFIX,
@@ -105,5 +118,7 @@ module.exports = {
     TRANSFER_STATUS,
     PAYMENT_TYPE,
     PAYMENT_METHOD,
-    PAYMENT_METHODS
+    PAYMENT_METHODS,
+    WARRANTIES,
+    MONEY_SYMBOL
 }
