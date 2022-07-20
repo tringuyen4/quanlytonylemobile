@@ -1,5 +1,5 @@
 const {notEmpty, isEmpty} = require("./data.utils");
-const {AGE_PREFIX, JAPANESE, PEOPLE_JOBS, MOBILE_STATUSES, PAYMENT_METHODS} = require("../constants/common.constant");
+const {AGE_PREFIX, JAPANESE, PEOPLE_JOBS, MOBILE_STATUSES, PAYMENT_METHODS, WARRANTIES, PRODUCT_SOURCE, MONEY_SYMBOL} = require("../constants/common.constant");
 const CURRENT_YEAR = new Date().getFullYear();
 
 const isDate = (date) => {
@@ -59,7 +59,20 @@ const priceWithFormat = (price = 0, separator = ',') => {
     return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, `${separator}`);
 }
 
+const priceWithSymbol = (priceStr = '', position = PRODUCT_SOURCE.SHOP_JP) => {
+    return (position === PRODUCT_SOURCE.SHOP_VN) ? `${priceStr}${MONEY_SYMBOL.VND}` : `${MONEY_SYMBOL.JPY}${priceStr}`;
+}
+
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+const getWarrantyText = (warrantyName = '') => {
+    if (isEmpty(warrantyName)) return null;
+    const warranty = WARRANTIES.find((x) => x.value === warrantyName.trim());
+    if (notEmpty(warranty)) {
+        return warranty.label
+    }
+    return null;
+}
 
 module.exports = {
     isDate,
@@ -67,9 +80,11 @@ module.exports = {
     getAgeText,
     getJobText,
     getDeviceStatusText,
+    getWarrantyText,
     priceWithFormat,
     dateFormat,
     CURRENT_YEAR,
     sleep,
-    getPaymentMethod
+    getPaymentMethod,
+    priceWithSymbol
 }
