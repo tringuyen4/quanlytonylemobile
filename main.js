@@ -665,6 +665,47 @@ app.post('/getdanhsachdonhangquanlymobiletransaction/', function (req, res) {
     });
 });
 
+
+app.get('/getsotienthubangtienmat/', function (req, res) {
+    // var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+
+    pool.query(`SELECT quanlythu.id, quanlythu.sotien, quanlythu.ngaytao, quanlythu.mucdich, quanlythu.vitri, danhsachdonhang.madonhang FROM public.quanlythu left join danhsachdonhang on quanlythu.mucdich = danhsachdonhang.transactionkey where quanlythu.vitri = 'WAREHOUSE' and quanlythu.hinhthucthanhtoan = 'tienmat'`, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
+
+app.get('/getsotienthubangtienmatnhat/', function (req, res) {
+    // var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+
+    pool.query(`SELECT quanlythu.id, quanlythu.sotien, quanlythu.ngaytao, quanlythu.mucdich, quanlythu.vitri, danhsachdonhang.madonhang FROM public.quanlythu left join danhsachdonhang on quanlythu.mucdich = danhsachdonhang.transactionkey where quanlythu.vitri = 'SHOP_JP' and quanlythu.hinhthucthanhtoan = 'tienmat'`, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
+
+app.get('/getsotienthubangtienmatvn/', function (req, res) {
+    // var postData = req.body;
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+
+    pool.query(`SELECT quanlythu.id, quanlythu.sotien, quanlythu.ngaytao, quanlythu.mucdich, quanlythu.vitri, danhsachdonhang.madonhang FROM public.quanlythu left join danhsachdonhang on quanlythu.mucdich = danhsachdonhang.transactionkey where quanlythu.vitri = 'SHOP_VN' and quanlythu.hinhthucthanhtoan = 'tienmat'`, function (error, results, fields) {
+        if (error) throw error;
+        res.end(JSON.stringify(results.rows));
+    });
+});
+
+
 app.post('/getdanhsachsanphamdabanquanlymobiletransaction/', function (req, res) {
     var postData = req.body;
     res.header("Access-Control-Allow-Origin", "*");
