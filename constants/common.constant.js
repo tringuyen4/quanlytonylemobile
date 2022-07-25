@@ -5,6 +5,11 @@ const JAPANESE = {
     MONTH: '月',
     DATE: '日'
 }
+const VIETNAMESE = {
+    YEAR: 'Năm',
+    MONTH: 'Tháng',
+    DATE: 'Ngày'
+}
 const JOB_TYPE = {
     STUDY_ABROAD: 'STUDY_ABROAD',
     OFFICE_WORKER: 'OFFICE_WORKER',
@@ -103,6 +108,12 @@ const MONEY_SYMBOL = {
     JPY: '¥',
 }
 
+const REPORT_DATE_FORMAT = {
+    NORMAL: 'NORMAL',
+    FULL_DATETIME_JP: 'FULL_DATETIME_JP',
+    FULL_DATETIME_VN: 'FULL_DATETIME_VN',
+}
+
 module.exports = {
     APP_VERSION,
     AGE_PREFIX,
@@ -111,6 +122,7 @@ module.exports = {
     DEVICE_STATUS,
     MOBILE_STATUSES,
     JAPANESE,
+    VIETNAMESE,
     INVOICE_TYPE,
     INVOICE_STATUS,
     PRODUCT_SOURCE,
@@ -120,5 +132,6 @@ module.exports = {
     PAYMENT_METHOD,
     PAYMENT_METHODS,
     WARRANTIES,
-    MONEY_SYMBOL
+    MONEY_SYMBOL,
+    REPORT_DATE_FORMAT
 }

@@ -16,8 +16,21 @@ class ReportService {
                     madonhang,
                     ngayban,
                     giatien,
-                    tenkhachhang
+                    tenkhachhang,
+                    tienmat,
+                    chuyenkhoan,
+                    daikibi
                 } = headerAndSummary;
+                let tongtienban = 0;
+                let tongsoluong = 0;
+                let tongtienmua = 0;
+                let tienthua = 0;
+                products.forEach((p) => {
+                    tongsoluong += parseInt(p.soluong);
+                    tongtienban += parseInt(p.soluong) * parseInt(p.giaban);
+                    tongtienmua += parseInt(p.soluong) * parseInt(p.giatien);
+                });
+                tienthua = (tongtienban - parseInt(tienmat) - parseInt(daikibi) - parseInt(chuyenkhoan));
                 return {
                     reportHeader: {
                         madonhang,
@@ -26,7 +39,13 @@ class ReportService {
                     },
                     position,
                     summary: {
-                        giatien
+                        giatien,
+                        tongsoluong,
+                        tienmat,
+                        chuyenkhoan,
+                        daikibi,
+                        tongtienban,
+                        tienthua
                     },
                     products
                 }
@@ -44,12 +63,18 @@ class ReportService {
         return this.pool.query(sellingDetailQuery, [invoiceId])
             .then(({rows}) => {
                 if (rows.length > 0) {
-                    const {madonhang, ngayban, giatien, tenkhachhang} = rows[0];
+                    const {madonhang, ngayban, giatien, tenkhachhang, tienmat, chuyenkhoan, daikibi} = rows[0];
                     return {
                         madonhang,
                         ngayban,
                         giatien,
-                        tenkhachhang
+                        tenkhachhang,
+                        tienmat,
+                        chuyenkhoan,
+                        daikibi,
+                        tienthua: 0,
+                        tongtienban: 0,
+                        tongtienthu: 0,
                     }
                 }
                 return null;
@@ -61,7 +86,7 @@ class ReportService {
     }
 
     _sellingInvoiceReportData(invoiceId = 0, position = PRODUCT_SOURCE.SHOP_JP) {
-        const sellingInvoiceDataQuery = `select p.tensanpham, p.giatien, p.soluong, p.thoihanbaohanh, p.imei
+        const sellingInvoiceDataQuery = `select p.tensanpham, p.giatien, p.soluong, p.giaban, p.thoihanbaohanh, p.imei
                                          from danhsachdonhang
                                                   inner join danhsachsanphamdaban p
                                                              on danhsachdonhang.transactionkey = p.transactionkey

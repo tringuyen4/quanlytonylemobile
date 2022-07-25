@@ -1,5 +1,7 @@
 const {notEmpty, isEmpty} = require("./data.utils");
-const {AGE_PREFIX, JAPANESE, PEOPLE_JOBS, MOBILE_STATUSES, PAYMENT_METHODS, WARRANTIES, PRODUCT_SOURCE, MONEY_SYMBOL} = require("../constants/common.constant");
+const {AGE_PREFIX, JAPANESE, PEOPLE_JOBS, MOBILE_STATUSES, PAYMENT_METHODS, WARRANTIES, PRODUCT_SOURCE, MONEY_SYMBOL,
+    REPORT_DATE_FORMAT, VIETNAMESE
+} = require("../constants/common.constant");
 const CURRENT_YEAR = new Date().getFullYear();
 
 const isDate = (date) => {
@@ -48,9 +50,18 @@ const getPaymentMethod = (paymentMethod = '') => {
     return null;
 }
 
-const dateFormat = (date, isJapanese = true) => {
+const dateFormat = (date, format = REPORT_DATE_FORMAT.FULL_DATETIME_JP) => {
     if (isDate(date)) {
-        return isJapanese ? `${date.getFullYear()}${JAPANESE.YEAR} ${date.getMonth() + 1}${JAPANESE.MONTH} ${date.getDate()}${JAPANESE.DATE}` : `${date.getDate()}-${date.getMonth()}-${date.getFullYear()}`;
+        switch (format) {
+            case REPORT_DATE_FORMAT.FULL_DATETIME_JP:
+                return `${date.getFullYear()}${JAPANESE.YEAR} ${date.getMonth() + 1}${JAPANESE.MONTH} ${date.getDate()}${JAPANESE.DATE}`;
+            case REPORT_DATE_FORMAT.FULL_DATETIME_VN:
+                return `${VIETNAMESE.DATE} ${date.getDate()} ${VIETNAMESE.MONTH}  ${date.getMonth() + 1} ${VIETNAMESE.YEAR} ${date.getFullYear()}`;
+            case REPORT_DATE_FORMAT.NORMAL:
+            default:
+                return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+
+        }
     }
     return null;
 }
