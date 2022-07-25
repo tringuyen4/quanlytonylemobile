@@ -29,9 +29,8 @@ class ReportService {
                     tongsoluong += parseInt(p.soluong);
                     tongtienban += parseInt(p.soluong) * parseInt(p.giaban);
                     tongtienmua += parseInt(p.soluong) * parseInt(p.giatien);
-                })
-                tienthua = -(tongtienban - parseInt(tienmat) - parseInt(daikibi) - parseInt(chuyenkhoan));
-                console.log('>>> tongtienban: ', tongtienban);
+                });
+                tienthua = (tongtienban - parseInt(tienmat) - parseInt(daikibi) - parseInt(chuyenkhoan));
                 return {
                     reportHeader: {
                         madonhang,
@@ -45,7 +44,8 @@ class ReportService {
                         tienmat,
                         chuyenkhoan,
                         daikibi,
-                        tongtienban
+                        tongtienban,
+                        tienthua
                     },
                     products
                 }

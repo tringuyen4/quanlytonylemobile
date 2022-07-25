@@ -8,7 +8,7 @@ const {
     getPaymentMethod, getWarrantyText, priceWithSymbol
 } = require("../utils/common.utils");
 const {notEmpty} = require("../utils/data.utils");
-const {PRODUCT_SOURCE} = require("../constants/common.constant");
+const {PRODUCT_SOURCE, REPORT_DATE_FORMAT} = require("../constants/common.constant");
 
 const EXPORT_TEMPLATES = {
     INVOICE: './exports/invoice_template.xlsx',
@@ -32,7 +32,12 @@ const SELLING_EXPORT_CELLS = {
     PRODUCT_PRICE_COLUMN: 'E',
     PRODUCT_WARRANTY_PERIOD_COLUMN: 'F',
 
+    SUMMARY_QUANTITY_COLUMN: 'D',
     SUMMARY_MONEY_COLUMN: 'E',
+    SUMMARY_CASH_COLUMN: 'E',
+    SUMMARY_TRANSFER_COLUMN: 'E',
+    SUMMARY_DAIBIKI_COLUMN: 'E',
+    SUMMARY_CHANGE_COLUMN: 'E',
 }
 
 const INVOICE_EXPORT_CELLS = {
@@ -97,12 +102,12 @@ class ExportService {
         const sellingTemplateName = position === PRODUCT_SOURCE.SHOP_VN ? EXPORT_TEMPLATES.SELLING_VN : EXPORT_TEMPLATES.SELLING_JP;
         let sellingTemplate = await this._readTemplate(sellingTemplateName);
         // Write fixed heading
-        sellingTemplate = this._writeSellingReportHeader(sellingTemplate, reportHeader);
+        sellingTemplate = this._writeSellingReportHeader(sellingTemplate, reportHeader, position);
         // Write devices list
         sellingTemplate = this._writeSellingReportItems(sellingTemplate, products, position);
         // Write the summary values
         const summaryRowIndex = SELLING_EXPORT_CELLS.PRODUCT_TABLE_START_ROW + (notEmpty(products) ? products.length : 1);
-        sellingTemplate = this._writeSellingReportSummary(sellingTemplate, summary, summaryRowIndex);
+        sellingTemplate = this._writeSellingReportSummary(sellingTemplate, summary, position, summaryRowIndex);
         // Write workbook as a arrayBuffer
         return sellingTemplate.xlsx.writeBuffer().then((buffer) => buffer).catch((e) => {
             console.log('>>> ExportService:invoiceReport Error: ', e);
@@ -110,10 +115,11 @@ class ExportService {
 
     }
 
-    _writeSellingReportHeader(wb, invoiceHeader) {
+    _writeSellingReportHeader(wb, invoiceHeader, position = PRODUCT_SOURCE.SHOP_JP) {
         const ws = wb.getWorksheet(1);
         const {ngayban, tenkhachhang} = invoiceHeader;
-        ws.getCell(SELLING_EXPORT_CELLS.SALE_DATE).value = dateFormat(new Date(ngayban));
+        const format = position === PRODUCT_SOURCE.SHOP_VN ? REPORT_DATE_FORMAT.FULL_DATETIME_VN : REPORT_DATE_FORMAT.NORMAL;
+        ws.getCell(SELLING_EXPORT_CELLS.SALE_DATE).value = dateFormat(new Date(ngayban), format);
         ws.getCell(SELLING_EXPORT_CELLS.CUSTOMER_NAME).value = tenkhachhang;
         return wb;
     }
@@ -136,7 +142,7 @@ class ExportService {
                 currentRow.getCell(`${SELLING_EXPORT_CELLS.PRODUCT_NAME_COLUMN}`).value = tensanpham;
                 currentRow.getCell(`${SELLING_EXPORT_CELLS.PRODUCT_IMEI_COLUMN}`).value = imei;
                 currentRow.getCell(`${SELLING_EXPORT_CELLS.PRODUCT_QUANTITY_COLUMN}`).value = soluong;
-                currentRow.getCell(`${SELLING_EXPORT_CELLS.PRODUCT_PRICE_COLUMN}`).value = priceWithSymbol(priceWithFormat(giatien));
+                currentRow.getCell(`${SELLING_EXPORT_CELLS.PRODUCT_PRICE_COLUMN}`).value = priceWithSymbol(priceWithFormat(giatien), position);
                 currentRow.getCell(`${SELLING_EXPORT_CELLS.PRODUCT_WARRANTY_PERIOD_COLUMN}`).value = getWarrantyText(thoihanbaohanh);
                 currentRow.commit();
             });
@@ -144,11 +150,21 @@ class ExportService {
         return wb;
     }
 
-    _writeSellingReportSummary(wb, summaryData, summaryRowIndex = SELLING_EXPORT_CELLS.PRODUCT_TABLE_START_ROW + 1) {
+    _writeSellingReportSummary(wb, summaryData, position = PRODUCT_SOURCE.SHOP_JP, summaryRowIndex = SELLING_EXPORT_CELLS.PRODUCT_TABLE_START_ROW + 1) {
         const ws = wb.getWorksheet(1);
-        const {giatien} = summaryData;
+        const {giatien, tongsoluong, tienmat, chuyenkhoan, daikibi, tienthua} = summaryData;
+        const totalQuantityAddress = `${SELLING_EXPORT_CELLS.SUMMARY_QUANTITY_COLUMN}${summaryRowIndex}`;
+        ws.getCell(totalQuantityAddress).value = tongsoluong;
         const totalMoneyAddress = `${SELLING_EXPORT_CELLS.SUMMARY_MONEY_COLUMN}${summaryRowIndex}`;
-        ws.getCell(totalMoneyAddress).value = priceWithSymbol(priceWithFormat(giatien));
+        ws.getCell(totalMoneyAddress).value = priceWithSymbol(priceWithFormat(giatien), position);
+        const cashAddress = `${SELLING_EXPORT_CELLS.SUMMARY_MONEY_COLUMN}${summaryRowIndex + 1}`;
+        ws.getCell(cashAddress).value = priceWithSymbol(priceWithFormat(tienmat), position);
+        const transferAddress = `${SELLING_EXPORT_CELLS.SUMMARY_TRANSFER_COLUMN}${summaryRowIndex + 2}`;
+        ws.getCell(transferAddress).value = priceWithSymbol(priceWithFormat(chuyenkhoan), position);
+        const daikibiAddress = `${SELLING_EXPORT_CELLS.SUMMARY_DAIBIKI_COLUMN}${summaryRowIndex + 3}`;
+        ws.getCell(daikibiAddress).value = priceWithSymbol(priceWithFormat(daikibi), position);
+        const changeAddress = `${SELLING_EXPORT_CELLS.SUMMARY_CHANGE_COLUMN}${summaryRowIndex + 4}`;
+        ws.getCell(changeAddress).value = priceWithSymbol(priceWithFormat(tienthua), position);
         return wb;
     }
 
