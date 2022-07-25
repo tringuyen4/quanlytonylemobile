@@ -15,6 +15,8 @@ const EXPORT_TEMPLATES = {
     TRANSFER_PAYMENT_INVOICE: './exports/transfer_payment_invoice_template.xlsx',
     NOTE: './exports/xuat_ban_chu_thich.xlsx',
     SELLING: './exports/xuat_ban_template.xlsx',
+    SELLING_VN: './exports/xuat_ban_vn_template.xlsx',
+    SELLING_JP: './exports/xuat_ban_nhat_template.xlsx',
 }
 
 const SELLING_EXPORT_CELLS = {
@@ -91,8 +93,9 @@ class ExportService {
      * @returns {Promise<void>}
      */
     async sellingReport(reportDetail) {
-        let sellingTemplate = await this._readTemplate(EXPORT_TEMPLATES.SELLING);
         const {reportHeader, summary, products, position} = reportDetail;
+        const sellingTemplateName = position === PRODUCT_SOURCE.SHOP_VN ? EXPORT_TEMPLATES.SELLING_VN : EXPORT_TEMPLATES.SELLING_JP;
+        let sellingTemplate = await this._readTemplate(sellingTemplateName);
         // Write fixed heading
         sellingTemplate = this._writeSellingReportHeader(sellingTemplate, reportHeader);
         // Write devices list
