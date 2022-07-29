@@ -229,7 +229,7 @@ class ReportService {
                                    FROM invoice i,
                                         (SELECT pd.invoice_id,
                                                 SUM(id.quantity) AS quantity,
-                                                SUM(id.price)    AS total_money
+                                                SUM(id.price * id.quantity)    AS total_money
                                          FROM purchasing_detail pd,
                                               invoice_detail id,
                                               invoice i,
