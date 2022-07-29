@@ -292,7 +292,6 @@ class ExportService {
                 const rowIndex = itemsRowIndex + index;
                 const noIndex = index + 1;
                 const currentRow = ws.getRow(rowIndex);
-                console.log('>>>> mobile: ', mobile);
                 const {name, color, status, imei, price, quantity} = mobile;
                 currentRow.getCell(`${INVOICE_EXPORT_CELLS.NO_COLUMN}`).value = noIndex;
                 currentRow.getCell(`${INVOICE_EXPORT_CELLS.MOBILE_NAME_COLUMN}`).value = name;
