@@ -41,7 +41,7 @@ const SELLING_EXPORT_CELLS = {
 }
 
 const INVOICE_EXPORT_CELLS = {
-    SALE_DATE: 'G3',
+    SALE_DATE: 'B2',
     JAPANESE_NAME: 'C5',
     VIETNAMESE_NAME: 'C6',
     BIRTHDAY: 'E5',
@@ -139,12 +139,12 @@ class ExportService {
                 const rowIndex = itemsRowIndex + index;
                 const noIndex = index + 1;
                 const currentRow = ws.getRow(rowIndex);
-                const {tensanpham, giatien, soluong, thoihanbaohanh, imei} = product;
+                const {tensanpham, giatien, soluong, thoihanbaohanh, imei, giaban} = product;
                 currentRow.getCell(`${SELLING_EXPORT_CELLS.NO_COLUMN}`).value = noIndex;
                 currentRow.getCell(`${SELLING_EXPORT_CELLS.PRODUCT_NAME_COLUMN}`).value = tensanpham;
                 currentRow.getCell(`${SELLING_EXPORT_CELLS.PRODUCT_IMEI_COLUMN}`).value = imei;
                 currentRow.getCell(`${SELLING_EXPORT_CELLS.PRODUCT_QUANTITY_COLUMN}`).value = soluong;
-                currentRow.getCell(`${SELLING_EXPORT_CELLS.PRODUCT_PRICE_COLUMN}`).value = priceWithSymbol(priceWithFormat(giatien), position);
+                currentRow.getCell(`${SELLING_EXPORT_CELLS.PRODUCT_PRICE_COLUMN}`).value = priceWithSymbol(priceWithFormat(giaban), position);
                 currentRow.getCell(`${SELLING_EXPORT_CELLS.PRODUCT_WARRANTY_PERIOD_COLUMN}`).value = getWarrantyText(thoihanbaohanh);
                 currentRow.commit();
             });
@@ -154,11 +154,11 @@ class ExportService {
 
     _writeSellingReportSummary(wb, summaryData, position = PRODUCT_SOURCE.SHOP_JP, summaryRowIndex = SELLING_EXPORT_CELLS.PRODUCT_TABLE_START_ROW + 1) {
         const ws = wb.getWorksheet(1);
-        const {giatien, tongsoluong, tienmat, chuyenkhoan, daikibi, tienthua} = summaryData;
+        const {giatien, tongsoluong, tienmat, chuyenkhoan, daikibi, tienthua, tongtienban} = summaryData;
         const totalQuantityAddress = `${SELLING_EXPORT_CELLS.SUMMARY_QUANTITY_COLUMN}${summaryRowIndex}`;
         ws.getCell(totalQuantityAddress).value = tongsoluong;
         const totalMoneyAddress = `${SELLING_EXPORT_CELLS.SUMMARY_MONEY_COLUMN}${summaryRowIndex}`;
-        ws.getCell(totalMoneyAddress).value = priceWithSymbol(priceWithFormat(giatien), position);
+        ws.getCell(totalMoneyAddress).value = priceWithSymbol(priceWithFormat(tongtienban), position);
         const cashAddress = `${SELLING_EXPORT_CELLS.SUMMARY_MONEY_COLUMN}${summaryRowIndex + 1}`;
         ws.getCell(cashAddress).value = priceWithSymbol(priceWithFormat(tienmat), position);
         const transferAddress = `${SELLING_EXPORT_CELLS.SUMMARY_TRANSFER_COLUMN}${summaryRowIndex + 2}`;
