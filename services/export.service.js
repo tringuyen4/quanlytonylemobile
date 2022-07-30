@@ -41,7 +41,7 @@ const SELLING_EXPORT_CELLS = {
 }
 
 const INVOICE_EXPORT_CELLS = {
-    SALE_DATE: 'B2',
+    SALE_DATE: 'G3',
     JAPANESE_NAME: 'C5',
     VIETNAMESE_NAME: 'C6',
     BIRTHDAY: 'E5',
@@ -65,10 +65,12 @@ const INVOICE_EXPORT_CELLS = {
     MOBILE_COLOR_COLUMN: 'D',
     MOBILE_STATUS_COLUMN: 'E',
     MOBILE_IMEI_COLUMN: 'F',
-    MOBILE_PRICE_COLUMN: 'G',
-    MOBILE_PRICE_ALTER_COLUMN: 'H',
-    SUMMARY_QUANTITY_COLUMN: 'F',
-    SUMMARY_MONEY_COLUMN: 'G',
+    MOBILE_QUANTITY_COLUMN: 'G',
+    MOBILE_QUANTITY_ALTER_COLUMN: 'H',
+    MOBILE_PRICE_COLUMN: 'H',
+    MOBILE_PRICE_ALTER_COLUMN: 'I',
+    SUMMARY_QUANTITY_COLUMN: 'G',
+    SUMMARY_MONEY_COLUMN: 'H',
 }
 
 
@@ -290,12 +292,13 @@ class ExportService {
                 const rowIndex = itemsRowIndex + index;
                 const noIndex = index + 1;
                 const currentRow = ws.getRow(rowIndex);
-                const {name, color, status, imei, price} = mobile;
+                const {name, color, status, imei, price, quantity} = mobile;
                 currentRow.getCell(`${INVOICE_EXPORT_CELLS.NO_COLUMN}`).value = noIndex;
                 currentRow.getCell(`${INVOICE_EXPORT_CELLS.MOBILE_NAME_COLUMN}`).value = name;
                 currentRow.getCell(`${INVOICE_EXPORT_CELLS.MOBILE_COLOR_COLUMN}`).value = color;
                 currentRow.getCell(`${INVOICE_EXPORT_CELLS.MOBILE_STATUS_COLUMN}`).value = getDeviceStatusText(status);
                 currentRow.getCell(`${INVOICE_EXPORT_CELLS.MOBILE_IMEI_COLUMN}`).value = imei;
+                currentRow.getCell(`${INVOICE_EXPORT_CELLS.MOBILE_QUANTITY_COLUMN}`).value = quantity;
                 currentRow.getCell(`${INVOICE_EXPORT_CELLS.MOBILE_PRICE_COLUMN}`).value = priceWithFormat(price);
                 currentRow.commit();
             });
