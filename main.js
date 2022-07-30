@@ -2342,16 +2342,16 @@ app.post(`${KAI_SERVICES.PURCHASING_INVOICES}/selling/report`, (req, res) => {
         .then(reportData => {
             exportService.sellingReport(reportData)
                 .then((bufferResponse) => {
-                    console.log('>>> Generate Invoice Report Finished! Customer Name: ', reportData.reportHeader.name_vietnamese);
+                    console.log('>>> Generate Selling Invoice Report Finished! Customer Name: ', reportData.reportHeader.name_vietnamese);
                     res.end(bufferResponse);
                 })
                 .catch(e => {
-                    console.log('>>>> Can not export purchasing invoice for Customer with name: ', reportData.reportHeader.name_vietnamese);
+                    console.log('>>>> Can not export selling invoice for Customer with name: ', reportData.reportHeader.name_vietnamese);
                     res.end(null);
                 });
         })
         .catch(e => {
-            console.log('>>>> Can not export purchasing invoice for Customer with invoice id: ', invoice_id);
+            console.log('>>>> Can not export selling invoice for Customer with invoice id: ', invoice_id);
             res.end(null);
         })
 
