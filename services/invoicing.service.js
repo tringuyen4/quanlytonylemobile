@@ -900,6 +900,8 @@ class InvoicingService {
         let purchasingInvoiceQuery = `INSERT INTO ${DATA_TABLES.INVOICE} (sale_date, total_quantity, total_money, type, status, payment_type)
                                       VALUES ($1, $2, $3, $4, $5, $6)
                                       RETURNING *;`;
+        purchasingInvoice.is_new_invoice = true;
+
         if (notEmpty(invoice_id)) {
             purchasingInvoiceQuery = `UPDATE ${DATA_TABLES.INVOICE}
                                       SET sale_date      = $1,
@@ -910,6 +912,7 @@ class InvoicingService {
                                           payment_type   = $6
                                       WHERE id = ${invoice_id}
                                       RETURNING *;`;
+            purchasingInvoice.is_new_invoice = false;
         }
 
         return this.pool.query(purchasingInvoiceQuery, Object.values(purchasingInvoiceData))
@@ -944,7 +947,7 @@ class InvoicingService {
             const deleteProducts = [];
             listProducts.forEach((product) => {
                 if (product.id !== -1) {
-                    promises.push(this._addOrUpdateProduct(product))
+                    promises.push(this._processPurchasingProduct(product, purchasingInvoice.is_new_invoice))
                 } else {
                     deleteProducts.push(product);
                 }
@@ -1374,11 +1377,12 @@ class InvoicingService {
         });
     }
 
-    _processPurchasingProduct(productData = null) {
+    _processPurchasingProduct(productData = null, is_new_invoice = false) {
         if (notEmpty(productData)) {
             if (isEmpty(productData.display_order)) {
                 productData.display_order = 0;
             }
+            let is_duplicate = false;
             const {imei, position, name, color, status, product_group_id, display_order, quantity, price, source} = productData;
             return this.productService.getProductInfo(imei, position)
                 .then((productInfo) => {
@@ -1418,13 +1422,14 @@ class InvoicingService {
                                             status           = $4,
                                             product_group_id = $5,
                                             display_order    = $6
-                                        WHERE id = ${id}
+                                        WHERE id = ${productInfo.id}
                                         RETURNING *;`;
 
                         if (notEmpty(productInfo.position)) {
                             // Update product_storage
                             // If duplicate imei, status, price: increase product quantity
-                            if (notEmpty(productInfo.price) && status == productInfo.status && price == productInfo.price) {
+                            if (notEmpty(productInfo.price) && status === productInfo.status && price === productInfo.price) {
+                                is_duplicate = true;
                                 productStorageQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
                                                        SET quantity = quantity + $1,
                                                            price    = $2
@@ -1454,8 +1459,71 @@ class InvoicingService {
                         }
                     } else {
                         // In-case: Not found product by imei it could be a new product or update imei number
+                        if (isEmpty(productData.id)) {
+                            productQuery = `INSERT INTO ${DATA_TABLES.PRODUCT} (name, imei, color, status, product_group_id, display_order)
+                                            VALUES ($1, $2, $3, $4, $5, $6)
+                                            RETURNING *;`;
 
+                            productStorageParams = {
+                                product_id: null,
+                                quantity: productStorageParams.quantity,
+                                price: productStorageParams.price,
+                                position: productStorageParams.position,
+                                source
+                            }
+                            productStorageQuery = `INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
+                                                   VALUES ($1, $2, $3, $4, $5)
+                                                   RETURNING *;`;
+                        } else {
+                            productQuery = `UPDATE ${DATA_TABLES.PRODUCT}
+                                        SET name             = $1,
+                                            imei             = $2,
+                                            color            = $3,
+                                            status           = $4,
+                                            product_group_id = $5,
+                                            display_order    = $6
+                                        WHERE id = ${productData.id}
+                                        RETURNING *;`;
+                            productStorageQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
+                                                   SET quantity = $1,
+                                                       price    = $2
+                                                   WHERE product_id = $3
+                                                     AND position = $4
+                                                   RETURNING *;`;
+                        }
                     }
+
+                    return this.pool.query(productQuery, Object.values(productParams))
+                        .then(({rows}) => {
+                            const {id} = rows[0];
+                            if (isEmpty(productStorageParams.product_id)) {
+                                productStorageParams.product_id = id;
+                            }
+
+                            return this.pool.query(productStorageQuery, Object.values(productStorageParams))
+                                .then(({rows}) => {
+                                    if (rows.length > 0) {
+                                        const {product_id, quantity, price} = rows[0];
+                                        if (isEmpty(productData.id)) {
+                                            productData.id = product_id;
+                                        }
+                                        return {
+                                            product: productData,
+                                            purchasing_quantity: quantity,
+                                            purchasing_price: price,
+                                            is_duplicate
+                                        };
+                                    }
+                                })
+                                .catch(e => {
+                                    throw e
+                                })
+
+
+                        })
+                        .catch(e => {
+                            throw e
+                        })
 
 
                 })

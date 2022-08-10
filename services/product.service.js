@@ -673,7 +673,6 @@ class ProductService {
                                 WHERE p.imei = $2`;
         return this.pool.query(productInfoQuery, [position, imei])
             .then(({rows}) => {
-                console.log('>>>> rows: ', rows);
                 return rows.length > 0 ? rows[0] : null;
             })
             .catch(e => {

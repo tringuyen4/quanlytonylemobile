@@ -96,6 +96,7 @@ const PURCHASING_INVOICE = {
     total_money: 0,
     customer: null,
     products: [],
+    is_new_invoice: false,
 }
 
 const FOR_SALE_INVOICE = {
