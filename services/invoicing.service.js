@@ -947,7 +947,7 @@ class InvoicingService {
             const deleteProducts = [];
             listProducts.forEach((product) => {
                 if (product.id !== -1) {
-                    promises.push(this._processPurchasingProduct(product, purchasingInvoice.is_new_invoice))
+                    promises.push(this.productService.addOrUpdateProduct(product))
                 } else {
                     deleteProducts.push(product);
                 }
