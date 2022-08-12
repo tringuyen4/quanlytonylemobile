@@ -1,4 +1,4 @@
-const APP_VERSION = '1.2.1';
+const APP_VERSION = '1.2.20220812';
 const AGE_PREFIX = '歳';
 const JAPANESE = {
     YEAR: '年',

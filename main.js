@@ -1964,22 +1964,52 @@ app.post(`${KAI_SERVICES.PRODUCTS}`, (req, res) => {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const { imei, name, color, status, quantity, price, position, source, product_group_id, estimated_price } = req.body;
-
-    productService.insertProduct({
-        imei, name, color, status, quantity, price, position, source, product_group_id, estimated_price
-    })
+    productService.addOrUpdateProduct(req.body)
         .then(productDetail => {
-            return res.status(HTTP_STATUSES.OK).json(productDetail)
+            return res.status(HTTP_STATUSES.OK).json(productDetail);
         })
         .catch(e => {
             console.log('>>>> ERROR: Can not insert product --> error ', e);
             return res.status(HTTP_STATUSES.BAD_REQUEST).json({
                 error: `Can not insert product for`
             });
-        });
+        })
+
+    // const { imei, name, color, status, quantity, price, position, source, product_group_id, estimated_price } = req.body;
+    //
+    // productService.insertProduct({
+    //     imei, name, color, status, quantity, price, position, source, product_group_id, estimated_price
+    // })
+    //     .then(productDetail => {
+    //         return res.status(HTTP_STATUSES.OK).json(productDetail)
+    //     })
+    //     .catch(e => {
+    //         console.log('>>>> ERROR: Can not insert product --> error ', e);
+    //         return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+    //             error: `Can not insert product for`
+    //         });
+    //     });
 });
 
+app.post(`${KAI_SERVICES.PRODUCTS}/add-or-update`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    console.log('>>>> req.body: ', req.body);
+    productService.addOrUpdateProduct(req.body)
+        .then(productDetail => {
+            return res.status(HTTP_STATUSES.OK).json(productDetail);
+        })
+        .catch(e => {
+            console.log('>>>> ERROR: Can not insert product --> error ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: `Can not insert product for`
+            });
+        })
+});
 
 app.post(`${KAI_SERVICES.CREAT_PRODUCTS}`, (req, res) => {
     res.header("Access-Control-Allow-Origin", "*");
