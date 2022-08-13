@@ -680,49 +680,24 @@ class ProductService {
             })
     }
 
-    isSellingProduct(imei = null, position = null) {
-        if (isEmpty(imei) && isEmpty(position)) {
-            return Promise.resolve(false);
-        }
-
-        return this.pool.query('SELECT * FROM danhsachsanphamdaban WHERE imei = $1 AND vitri = $2;', [imei, position])
-            .then(({rows}) => {
-                return rows.length > 0;
-            })
-            .catch(e => {
-                throw e
-            })
-    }
-
     addOrUpdateProduct(productData = null) {
         if (notEmpty(productData)) {
-            const {
-                imei,
-                position
-            } = productData;
-
-            return Promise.all([
-                this.getProductInfo(imei, position),
-                this.isSellingProduct(imei, position)
-            ])
-                .then(([productInfo, isSellingProduct]) => {
-                    return this._processProduct(productData, productInfo, isSellingProduct);
-                })
-                .catch(e => {
-                    throw e
-                })
-
-        } else {
-            return Promise.resolve(null);
-        }
-    }
-
-    _processProduct(productData = null, productInfo = null, isSellingProduct = false) {
-        if (notEmpty(productData)) {
+            // Prepare some data
             if (isEmpty(productData.display_order)) {
                 productData.display_order = 0;
             }
-            const {imei, position, name, color, status, product_group_id, display_order, quantity, price, source} = productData;
+            const {
+                imei,
+                position,
+                name,
+                color,
+                status,
+                product_group_id,
+                display_order,
+                quantity,
+                price,
+                source
+            } = productData;
 
             let productQuery = ``;
             let productParams = {
@@ -734,11 +709,10 @@ class ProductService {
                 display_order,
             };
             let productStorageQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
-                                               SET quantity = $1,
-                                                   price    = $2
-                                               WHERE product_id = $3
-                                                 AND position = $4
-                                               RETURNING *;`;
+                                       SET quantity = $1,
+                                           price    = $2
+                                       WHERE product_id = $3
+                                         AND position = $4 RETURNING *;`;
             let productStorageParams = {
                 quantity: quantity,
                 price: +productData.price, //Trick to convert string to number
@@ -746,37 +720,26 @@ class ProductService {
                 position: position,
             };
 
-            if (notEmpty(productInfo)) {
-                // Exists product with imei
-
-                // Enrich product_id for product_storage
-                productStorageParams.product_id = productInfo.id;
-
-                // Setup product query for update
-                productQuery = `UPDATE ${DATA_TABLES.PRODUCT}
-                                        SET name             = $1,
-                                            imei             = $2,
-                                            color            = $3,
-                                            status           = $4,
-                                            product_group_id = $5,
-                                            display_order    = $6
-                                        WHERE id = ${productInfo.id}
-                                        RETURNING *;`;
-
-                if (notEmpty(productInfo.position)) {
-                    // Update product_storage
-                    // If duplicate imei, status, price: increase product quantity
-                    if (notEmpty(productInfo.price) && price === productInfo.price && isSellingProduct) {
-                        productStorageQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
-                                                       SET quantity = quantity + $1,
-                                                           price    = $2
-                                                       WHERE product_id = $3
-                                                         AND position = $4
-                                                       RETURNING *;`;
-                    } else if((notEmpty(productInfo.price) && price !== productInfo.price && isSellingProduct) || (notEmpty(productInfo.price) && price === productInfo.price && !isSellingProduct)) {
+            // Check productData
+            // soluong -> so luong san pham da ban, bang null neu chua ban
+            let checkProductDataQuery = `SELECT productInfo.*, d.soluong
+                                         FROM (SELECT p.id,
+                                                      p.imei,
+                                                      ps.price,
+                                                      ps.position
+                                               FROM product p
+                                                        LEFT JOIN product_storage ps
+                                                                  ON p.id = ps.product_id
+                                               WHERE p.imei = $1) productInfo
+                                                  LEFT JOIN danhsachsanphamdaban d
+                                                            ON productInfo.id = CAST(d.productid AS INTEGER)`
+            return this.pool.query(checkProductDataQuery, [imei])
+                .then(({rows}) => {
+                    if (rows.length === 0) {
+                        // Case 1: rows length = 0 -> Not exists product with imei => Tao record moi
+                        // Prepare data for insert new product and product storage
                         productQuery = `INSERT INTO ${DATA_TABLES.PRODUCT} (name, imei, color, status, product_group_id, display_order)
-                                        VALUES ($1, $2, $3, $4, $5, $6)
-                                            RETURNING *;`;
+                                        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;`;
 
                         productStorageParams = {
                             product_id: null,
@@ -786,93 +749,109 @@ class ProductService {
                             source
                         }
                         productStorageQuery = `INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
-                                                   VALUES ($1, $2, $3, $4, $5)
-                                                   RETURNING *;`;
-                    }
-                    else {
-                        productStorageQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
-                                                       SET quantity = $1,
+                                               VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
+                    } else {
+                        let isDifferPrice = true;
+                        for (const p of rows) {
+
+                            if (p.price === price) {
+                                isDifferPrice = false;
+                                break;
+                            }
+                        }
+
+                        if (isDifferPrice) {
+                            // Case 2: Khong co sp nao trung imei va trung gia => Tao Record moi
+                            productQuery = `INSERT INTO ${DATA_TABLES.PRODUCT} (name, imei, color, status, product_group_id, display_order)
+                                            VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;`;
+
+                            productStorageParams = {
+                                product_id: null,
+                                quantity: productStorageParams.quantity,
+                                price: productStorageParams.price,
+                                position: productStorageParams.position,
+                                source
+                            }
+                            productStorageQuery = `INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
+                                                   VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
+                        } else {
+                            let soldProducts = []; // Ds san pham da ban
+                            let notSaleProducts = []; // DS san pham chua ban
+                            rows.forEach((p) => {
+                                if (isEmpty(p.soluong)) {
+                                    notSaleProducts.push(p);
+                                } else {
+                                    soldProducts.push(p);
+                                }
+                            });
+
+                            if (soldProducts.length > 0 && notSaleProducts.length === 0) {
+                                // Case 3: Trung imei, trung gia, chi co cac sp da ban khong co sp chua ban => Tao record moi
+                                productQuery = `INSERT INTO ${DATA_TABLES.PRODUCT} (name, imei, color, status, product_group_id, display_order)
+                                                VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;`;
+
+                                productStorageParams = {
+                                    product_id: null,
+                                    quantity: productStorageParams.quantity,
+                                    price: productStorageParams.price,
+                                    position: productStorageParams.position,
+                                    source
+                                }
+                                productStorageQuery = `INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
+                                                       VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
+                            } else if (notSaleProducts.length > 0) {
+                                // Case 4: Trung imei, trung gia, chi co cac sp chua ban ban khong co sp da ban => Cong don so luong vao sp chua ban
+                                // Case 5: Trung imei, trung gia, co ca dong thoi sp da ban va chua ban => Cong don so luong vao sp chua ban
+                                // Note: Chi update so luong vao sp chua ban dau tien
+                                const notSaleProductId = notSaleProducts[0].id; // Id sp chua ban dau tien
+                                productQuery = `UPDATE ${DATA_TABLES.PRODUCT}
+                                                SET name             = $1,
+                                                    imei             = $2,
+                                                    color            = $3,
+                                                    status           = $4,
+                                                    product_group_id = $5,
+                                                    display_order    = $6
+                                                WHERE id = ${notSaleProductId} RETURNING *;`;
+                                productStorageQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
+                                                       SET quantity = quantity + $1,
                                                            price    = $2
                                                        WHERE product_id = $3
-                                                         AND position = $4
-                                                       RETURNING *;`;
-                    }
-                } else {
-                    // productInfo.position is empty, this is a new product_storage insert it
-                    productStorageParams = {
-                        product_id: null,
-                        quantity: productStorageParams.quantity,
-                        price: productStorageParams.price,
-                        position: productStorageParams.position,
-                        source
-                    }
-                    productStorageQuery = `INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
-                                                   VALUES ($1, $2, $3, $4, $5)
-                                                   RETURNING *;`;
-                }
-            } else {
-                // In-case: Not found product by imei it could be a new product or update imei number
-                if (isEmpty(productData.id)) {
-                    productQuery = `INSERT INTO ${DATA_TABLES.PRODUCT} (name, imei, color, status, product_group_id, display_order)
-                                            VALUES ($1, $2, $3, $4, $5, $6)
-                                            RETURNING *;`;
-
-                    productStorageParams = {
-                        product_id: null,
-                        quantity: productStorageParams.quantity,
-                        price: productStorageParams.price,
-                        position: productStorageParams.position,
-                        source
-                    }
-                    productStorageQuery = `INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
-                                                   VALUES ($1, $2, $3, $4, $5)
-                                                   RETURNING *;`;
-                } else {
-                    productQuery = `UPDATE ${DATA_TABLES.PRODUCT}
-                                        SET name             = $1,
-                                            imei             = $2,
-                                            color            = $3,
-                                            status           = $4,
-                                            product_group_id = $5,
-                                            display_order    = $6
-                                        WHERE id = ${productData.id}
-                                        RETURNING *;`;
-                    productStorageQuery = `UPDATE ${DATA_TABLES.PRODUCT_STORAGE}
-                                                   SET quantity = $1,
-                                                       price    = $2
-                                                   WHERE product_id = $3
-                                                     AND position = $4
-                                                   RETURNING *;`;
-                }
-            }
-
-            return this.pool.query(productQuery, Object.values(productParams))
-                .then(({rows}) => {
-                    const {id} = rows[0];
-                    if (isEmpty(productStorageParams.product_id)) {
-                        productStorageParams.product_id = id;
-                    }
-
-                    return this.pool.query(productStorageQuery, Object.values(productStorageParams))
-                        .then(({rows}) => {
-                            if (rows.length > 0) {
-                                const {product_id, quantity, price} = rows[0];
-                                if (isEmpty(productData.id)) {
-                                    productData.id = product_id;
-                                }
-                                return {
-                                    product: productData,
-                                    purchasing_quantity: quantity,
-                                    purchasing_price: price,
-                                    is_selling: isSellingProduct,
-                                };
+                                                         AND position = $4 RETURNING *;`;
                             }
+
+                        }
+                    }
+
+                    return this.pool.query(productQuery, Object.values(productParams))
+                        .then(({rows}) => {
+                            const {id} = rows[0];
+                            if (isEmpty(productStorageParams.product_id)) {
+                                productStorageParams.product_id = id;
+                            }
+
+                            return this.pool.query(productStorageQuery, Object.values(productStorageParams))
+                                .then(({rows}) => {
+                                    if (rows.length > 0) {
+                                        const {product_id, quantity, price} = rows[0];
+                                        if (isEmpty(productData.id)) {
+                                            productData.id = product_id;
+                                        }
+                                        return {
+                                            product: productData,
+                                            purchasing_quantity: quantity,
+                                            purchasing_price: price,
+                                        };
+                                    }
+                                })
+                                .catch(e => {
+                                    throw e
+                                })
+
+
                         })
                         .catch(e => {
                             throw e
                         })
-
-
                 })
                 .catch(e => {
                     throw e
