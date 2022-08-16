@@ -1631,7 +1631,7 @@ app.post(KAI_SERVICES.CUSTOMERS, function (req, res) {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const { name_vietnamese, name_japanese, birthday, age, address, phone, job } = req.body;
+    const { name_vietnamese, name_japanese, birthday, age, address, phone, job, payment_method, bank_name, branch_name, bank_id, account_name } = req.body;
     customerService.addCustomer({
         name_vietnamese,
         name_japanese,
@@ -1639,7 +1639,8 @@ app.post(KAI_SERVICES.CUSTOMERS, function (req, res) {
         age,
         address,
         phone,
-        job
+        job,
+        payment_method, bank_name, branch_name, bank_id, account_name
     }).then((customer) => {
         return res.status(HTTP_STATUSES.CREATED).json(customer);
     }).catch(e => {
@@ -1658,7 +1659,7 @@ app.put(KAI_SERVICES.CUSTOMERS, function (req, res) {
     res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
     res.header('content-type', 'application/json');
 
-    const { id, name_vietnamese, name_japanese, birthday, age, address, phone, job } = req.body;
+    const { id, name_vietnamese, name_japanese, birthday, age, address, phone, job, payment_method, bank_name, branch_name, bank_id, account_name } = req.body;
 
     customerService.updateCustomer(id, {
         name_vietnamese,
@@ -1667,7 +1668,7 @@ app.put(KAI_SERVICES.CUSTOMERS, function (req, res) {
         age,
         address,
         phone,
-        job
+        job, payment_method, bank_name, branch_name, bank_id, account_name
     }).then((customer) => {
         return res.status(HTTP_STATUSES.OK).json(customer);
     }).catch(e => {
@@ -2523,7 +2524,7 @@ app.post(`${KAI_SERVICES.PURCHASING_INVOICES}`, (req, res) => {
 });
 
 app.post(`${KAI_SERVICES.PURCHASING_INVOICES}/selling/report`, (req, res) => {
-    const {invoice_id, position} = req.body;
+    const { invoice_id, position } = req.body;
     reportService.sellingInvoiceReport(invoice_id, position)
         .then(reportData => {
             exportService.sellingReport(reportData)
