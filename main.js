@@ -126,7 +126,9 @@ app.post('/getdanhsachdonhangtheomadonhang/', function (req, res) {
     pool.query('select * from danhsachdonhang where madonhang = ($1)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
-    });
+    }).catch(e => {
+        throw e;
+    });;
 });
 
 app.post('/gettonggiatienreal/', function (req, res) {
@@ -139,7 +141,9 @@ app.post('/gettonggiatienreal/', function (req, res) {
     pool.query('select SUM (CAST (gia AS INTEGER)) AS total, Count(*) as totalitem from danhsachdonhang where madonhang = ($1)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
-    });
+    }).catch(e => {
+        throw e;
+    });;
 });
 
 app.post('/gettonggiatientemp/', function (req, res) {
@@ -152,7 +156,9 @@ app.post('/gettonggiatientemp/', function (req, res) {
     pool.query('select SUM (CAST (gia AS INTEGER)) AS total, Count(*) as totalitem from danhsachdonhangtemp where madonhang = ($1)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
-    });
+    }).catch(e => {
+        throw e;
+    });;
 });
 
 app.post('/getquanlymaytheomasanpham/', function (req, res) {
@@ -165,7 +171,9 @@ app.post('/getquanlymaytheomasanpham/', function (req, res) {
     pool.query('select * from quanlymay where masanpham = ($1)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
-    });
+    }).catch(e => {
+        throw e;
+    });;
 });
 
 //input user
@@ -497,7 +505,9 @@ app.get('/getthongtinmaythumua/', function (req, res) {
     pool.query(`select * FROM thongtinmaythumua`, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
-    });
+    }).catch(e => {
+        throw e;
+    });;
 });
 
 app.post('/thongtinmaythumua/', function (req, res) {
@@ -525,7 +535,9 @@ app.post('/deletethongtinmaythumua/', function (req, res) {
     pool.query('DELETE FROM thongtinmaythumua where jpcode=($1) AND nhomsanpham=($2) AND tenmay=($3) AND trangthai=($4) AND mau=($5) AND gia=($6)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
-    });
+    }).catch(e => {
+        throw e;
+    });;
 });
 
 app.post('/nhomsanpham/', function (req, res) {
@@ -1237,7 +1249,9 @@ app.post('/getsoluongsanphamhientaidangco/', function (req, res) {
     pool.query('select quantity from product_storage where product_id = ($1) and position = ($2)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
-    });
+    }).catch(e => {
+        throw e;
+    });;
 });
 
 app.post('/deletedanhsachdonhangsaukhihuy/', function (req, res) {
@@ -1250,7 +1264,9 @@ app.post('/deletedanhsachdonhangsaukhihuy/', function (req, res) {
     pool.query('DELETE FROM danhsachdonhang where transactionkey = ($1)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
-    });
+    }).catch(e => {
+        throw e;
+    });;
 });
 
 app.post('/deletedanhsachsanphamdabansaukhihuy/', function (req, res) {
@@ -1263,7 +1279,9 @@ app.post('/deletedanhsachsanphamdabansaukhihuy/', function (req, res) {
     pool.query('DELETE FROM danhsachsanphamdaban where transactionkey = ($1)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
-    });
+    }).catch(e => {
+        throw e;
+    });;
 });
 
 app.post('/deletequanlythu/', function (req, res) {
@@ -1276,7 +1294,9 @@ app.post('/deletequanlythu/', function (req, res) {
     pool.query('DELETE FROM quanlythu where id = ($1)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
-    });
+    }).catch(e => {
+        throw e;
+    });;
 });
 
 app.post('/deletequanlythutransactionkey/', function (req, res) {
@@ -1289,7 +1309,9 @@ app.post('/deletequanlythutransactionkey/', function (req, res) {
     pool.query('DELETE FROM quanlythu where mucdich = ($1)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
-    });
+    }).catch(e => {
+        throw e;
+    });;
 });
 
 app.post('/deletequanlychi/', function (req, res) {
@@ -1302,7 +1324,9 @@ app.post('/deletequanlychi/', function (req, res) {
     pool.query('DELETE FROM quanlychi where id = ($1)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
-    });
+    }).catch(e => {
+        throw e;
+    });;
 });
 
 app.post('/quanlychi/', function (req, res) {
@@ -1315,7 +1339,9 @@ app.post('/quanlychi/', function (req, res) {
     pool.query('INSERT INTO quanlychi VALUES (DEFAULT,$1,$2,$3,$4,$5)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
-    });
+    }).catch(e => {
+        throw e;
+    });;
 });
 
 app.get('/getquanlychi/', function (req, res) {
@@ -1367,7 +1393,9 @@ app.post('/updateimeisanphamtonkho/', function (req, res) {
     pool.query('UPDATE sanphamtonkho SET imei = ($1) where id = ($2)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
-    });
+    }).catch(e => {
+        throw e;
+    });;
 });
 
 app.post('/getsanpham/', function (req, res) {
@@ -1380,7 +1408,9 @@ app.post('/getsanpham/', function (req, res) {
     pool.query('SELECT * FROM product INNER JOIN product_storage ON product.id = product_storage.product_id where product.id = ($1)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
-    });
+    }).catch(e => {
+        throw e;
+    });;
 });
 
 app.post('/getsanphamemei/', function (req, res) {
@@ -1393,7 +1423,9 @@ app.post('/getsanphamemei/', function (req, res) {
     pool.query('SELECT * FROM product INNER JOIN product_storage ON product.id = product_storage.product_id where product.imei = ($1)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
-    });
+    }).catch(e => {
+        throw e;
+    });;
 });
 
 app.post('/updatesanpham/', function (req, res) {
@@ -1406,7 +1438,9 @@ app.post('/updatesanpham/', function (req, res) {
     pool.query('UPDATE sanphamtonkho SET nhomsanpham = ($1), tensanpham = ($2), dungluong = ($3), loaisanpham = ($4), phienban = ($5), imei = ($6) where id = ($7)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
-    });
+    }).catch(e => {
+        throw e;
+    });;
 });
 
 app.post('/danhsachdonhang/', function (req, res) {
@@ -1419,6 +1453,8 @@ app.post('/danhsachdonhang/', function (req, res) {
     pool.query('INSERT INTO danhsachdonhang VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
+    }).catch(e => {
+        throw e;
     });
 });
 
@@ -1432,7 +1468,9 @@ app.post('/danhsachdonhangtemp/', function (req, res) {
     pool.query('INSERT INTO danhsachdonhangtemp VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,DEFAULT,$16,$17,$18,$19)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
-    });
+    }).catch(e => {
+        throw e;
+    });;
 });
 
 app.get('/getdungluong/', function (req, res) {
@@ -1575,7 +1613,9 @@ app.post('/getdanhsachdonhangtheonguoimua/', function (req, res) {
     pool.query('select * from danhsachdonhangtemp where sodienthoaikhachhang = ($1)', postData, function (error, results, fields) {
         if (error) throw error;
         res.end(JSON.stringify(results.rows));
-    });
+    }).catch(e => {
+        throw e;
+    });;
 });
 
 app.post('/getdanhsachdonhangtheonguoimuareal/', function (req, res) {
