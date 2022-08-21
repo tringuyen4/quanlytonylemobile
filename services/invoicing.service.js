@@ -1315,7 +1315,8 @@ class InvoicingService {
             listProductIds.push(product.id);
             const invoiceDetailParams = {
                 quantity: product.quantity,
-                price: product.price,
+                price: product.price
+                // imei: product.imei //tri update imei
             }
 
             // Update anyway

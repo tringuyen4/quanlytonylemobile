@@ -800,19 +800,19 @@ class ProductService {
                                 productStorageQuery = `INSERT INTO ${DATA_TABLES.PRODUCT_STORAGE} (product_id, quantity, price, position, source)
                                                        VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
                             } else if (notSaleProducts.length > 0) {
-                                let notSaleProductTest;
+                                // let notSaleProductTest;
                                 // Case 4: Trung imei, trung gia, chi co cac sp chua ban ban khong co sp da ban => Cong don so luong vao sp chua ban
                                 // Case 5: Trung imei, trung gia, co ca dong thoi sp da ban va chua ban => Cong don so luong vao sp chua ban
-                                // Note: Chi update so luong vao sp chua ban dau tien
-                                for (let i = 0; i < notSaleProducts.length - 1; i++) {
-                                    for(let j=i+1;j<notSaleProducts.length;j++){
-                                        if(notSaleProducts[i].price==notSaleProducts[j].price){
-                                            notSaleProductTest = notSaleProducts[i].id
-                                        }
-                                    }
-                                }
-                                const notSaleProductId = notSaleProductTest; // Id sp chua ban dau tien
-                                // const notSaleProductId = notSaleProducts[0].id; // Id sp chua ban dau tien
+                                // // Note: Chi update so luong vao sp chua ban dau tien
+                                // for (let i = 0; i < notSaleProducts.length - 1; i++) {
+                                //     for(let j=i+1;j<notSaleProducts.length;j++){
+                                //         if(notSaleProducts[i].price==notSaleProducts[j].price){
+                                //             notSaleProductTest = notSaleProducts[i].id
+                                //         }
+                                //     }
+                                // }
+                                // const notSaleProductId = notSaleProductTest; // Id sp chua ban dau tien
+                                const notSaleProductId = notSaleProducts[0].id; // Id sp chua ban dau tien
                                 productQuery = `UPDATE ${DATA_TABLES.PRODUCT}
                                                 SET name             = $1,
                                                     imei             = $2,
