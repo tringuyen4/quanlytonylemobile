@@ -3,6 +3,7 @@ var express = require('express');
 var app = express();
 var mysql = require('mysql');
 var bodyParser = require('body-parser');
+var multer = require('multer');
 var cors = require('cors');
 const { Pool } = require('pg')
 const { KAI_SERVICES } = require("./constants/kai-service.constants");
@@ -30,6 +31,7 @@ const { StatisticsService } = require("./services/statistics.service");
 const { ExportService } = require("./services/export.service");
 const { ReportService } = require("./services/report.service");
 const { TransferringService } = require("./services/transferring.service");
+const { AttachmentService } = require("./services/attachment.service");
 
 //MySQL connection
 // var connection = mysql.createConnection({
@@ -80,6 +82,7 @@ const productService = new ProductService(pool);
 const customerService = new CustomerService(pool);
 const statisticsService = new StatisticsService(pool);
 const reportService = new ReportService(pool);
+const attachmentService = new AttachmentService(pool);
 const exportService = new ExportService();
 
 module.exports = { pool }
@@ -89,6 +92,18 @@ app.use(bodyParser.json());       // to support JSON-encoded bodies
 app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
     extended: true
 }));
+
+// SET STORAGE
+var storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads')
+    },
+    filename: function (req, file, cb) {
+        cb(null, file.fieldname + '-' + Date.now())
+    }
+})
+
+var upload = multer({ storage: storage })
 
 //Create node.js Server
 // var server = app.listen(3000, "127.0.0.1", function () {
@@ -3879,6 +3894,47 @@ app.post(`${KAI_SERVICES.STATISTICS}`, (req, res) => {
         })
 
 
+});
+
+app.get(`${KAI_SERVICES.ATTACHMENTS}`, (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    attachmentService.getAllAttachments()
+        .then((attachments) => {
+            return res.status(HTTP_STATUSES.OK).json(attachments)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get KAI statistics. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get KAI statistics.'
+            })
+        })
+});
+
+
+app.post(`${KAI_SERVICES.ATTACHMENTS}/upload`, upload.single('picture'), (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Credentials", true);
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,content-type,application/json");
+    res.header('content-type', 'application/json');
+
+    const files = [];
+    console.log('>>>> files: ', req.file);
+    attachmentService.upload(files)
+        .then((attachments) => {
+            return res.status(HTTP_STATUSES.OK).json(attachments)
+        })
+        .catch(e => {
+            console.log('>>> ERROR: Can not get KAI statistics. --> error: ', e);
+            return res.status(HTTP_STATUSES.BAD_REQUEST).json({
+                error: 'Can not get KAI statistics.'
+            })
+        })
 });
 
 app.get(`${KAI_SERVICES.APP_INFO}`, (req, res) => {

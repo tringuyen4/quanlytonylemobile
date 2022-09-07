@@ -28,6 +28,7 @@ const DATA_TABLES = {
     INVOICE_PAYMENT: 'invoice_payment',
     QUAN_LY_CHI: 'quanlychi',
     DANH_SACH_DON_HANG: 'danhsachdonhang',
+    ATTACHMENTS: 'attachments',
 }
 
 // Because Javascript not support interface so we have some constant object as model

@@ -11,6 +11,7 @@ const KAI_SERVICES = {
     TRANSFERRING: '/transferring',
     PRODUCT_GROUP: '/product-groups',
     CREAT_PRODUCTS: '/createproducts',
+    ATTACHMENTS: '/attachments',
 }
 
 module.exports = {
